@@ -1,0 +1,44 @@
+[package]
+name = "pallet-dao-votes"
+version = "4.0.0-dev"
+description = "FRAME pallet for the voting within a DAO"
+authors = ["chp"]
+homepage = "https://emerging-tech.agency"
+edition = "2021"
+license = "Unlicense"
+publish = false
+repository = "https://github.com/shredding/genesis-dao/"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [ "derive", ] }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+sp-std = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.35", default-features = false }
+pallet-dao-core = { version = "4.0.0-dev", default-features = false, path = "../dao-core" }
+
+[dev-dependencies]
+sp-core = { version = "7.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+sp-io = { version = "7.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+sp-runtime = { version = "7.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+pallet-assets = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+	"scale-info/std",
+	"sp-runtime/std",
+	"pallet-dao-core/std",
+]
+
+try-runtime = [
+	"frame-support/try-runtime"
+]

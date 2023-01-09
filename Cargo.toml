@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "node",
+    "pallets/dao-core",
+    "pallets/dao-votes",
+    "runtime/local",
+]
+[profile.release]
+panic = "unwind"
