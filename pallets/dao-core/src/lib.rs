@@ -95,6 +95,7 @@ pub mod pallet {
 		DaoTokenAlreadyIssued
 	}
 
+	/// Key-Value Store of all _DAOs_, with the key being the `dao_id`.
 	#[pallet::storage]
 	#[pallet::getter(fn get_dao)]
 	pub(super) type Daos<T: Config> = StorageMap<
@@ -104,8 +105,10 @@ pub mod pallet {
 		DaoOf<T>
 	>;
 
+	/// Internal incrementor of all assets issued by this module.
+	/// The first asset starts with _1_ (sic!, not 0) and then the id is assigned by order of creation.
 	#[pallet::storage]
-	#[pallet::getter(fn get_next_asset_id)]
+	#[pallet::getter(fn get_current_asset_id)]
 	pub type CurrentAssetId<T> = StorageValue<_, AssetIdOf<T>, ValueQuery>;
 
 
@@ -153,6 +156,7 @@ pub mod pallet {
 			ensure!(dao.owner == sender, Error::<T>::DaoSignerNotOwner);
 
 			<T as Config>::Currency::unreserve(&sender, <T as Config>::DaoDeposit::get());
+
 			Self::deposit_event(Event::DaoDestroyed { dao_id: dao.id.clone() });
 			<Daos<T>>::remove(&dao.id);
 			Ok(())
