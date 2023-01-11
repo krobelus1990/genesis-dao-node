@@ -5,7 +5,7 @@ description = "FRAME pallet for the voting within a DAO"
 authors = ["chp"]
 homepage = "https://emerging-tech.agency"
 edition = "2021"
-license = "Unlicense"
+license = "Apache-2.0"
 publish = false
 repository = "https://github.com/shredding/genesis-dao/"
 
