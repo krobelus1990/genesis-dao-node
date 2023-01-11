@@ -3,7 +3,7 @@
 // > cargo build --release --features runtime-benchmarks --features local-node
 //
 // Weight Creation:
-// > ./target/release/genesis-dao benchmark pallet --chain dev --pallet pallet_dao_core --extrinsic '*' --steps 20 --repeat 10 --output pallets/dao-core/src/weights.rs
+// > ./target/release/genesis-dao benchmark pallet --chain dev --pallet pallet_dao_core --extrinsic '*' --steps 20 --repeat 10 --output pallets/dao-core/src/weights.rs --template ./benchmarking/frame-weight-template.hbs
 //
 #![cfg(feature = "runtime-benchmarks")]
 

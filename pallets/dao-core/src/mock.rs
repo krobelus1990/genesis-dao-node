@@ -110,6 +110,7 @@ impl pallet_dao_core::Config for Test {
 	type DaoDeposit = ConstU128<10>;
     type TokenUnits = ConstU8<9>;
 	type AssetId = u32;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

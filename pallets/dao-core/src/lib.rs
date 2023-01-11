@@ -13,6 +13,7 @@ pub use frame_support::{
 		Currency,
 	},
 	sp_runtime::traits::{Saturating, One},
+	weights::Weight
 };
 
 #[cfg(test)]
@@ -33,6 +34,9 @@ use pallet_assets;
 type DepositBalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type AssetIdOf<T> = <T as Config>::AssetId;
 type DaoOf<T> = Dao<<T as frame_system::Config>::AccountId, BoundedVec<u8, <T as Config>::MaxLength>, AssetIdOf<T>>;
+
+pub mod weights;
+use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -61,6 +65,8 @@ pub mod pallet {
 			+ MaxEncodedLen
 			+ One
 			+ Saturating;
+
+		type WeightInfo: WeightInfo;
 
 		#[pallet::constant]
 		type DaoDeposit: Get<DepositBalanceOf<Self>>;
@@ -121,7 +127,7 @@ pub mod pallet {
 		/// - `dao_name`: The name of the to-be-created DAO.
 		///
 		/// A DAO must reserve the _DaoDeposit_ fee.
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::create_dao())]
 		pub fn create_dao(origin: OriginFor<T>, dao_id: Vec<u8>, dao_name: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
@@ -149,7 +155,7 @@ pub mod pallet {
 		/// - `dao_id`: The DAO to destroy
 		///
 		/// Signer of this TX needs to be the owner of the DAO.
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::destroy_dao())]
 		pub fn destroy_dao(origin: OriginFor<T>, dao_id: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let dao = Self::load_dao(dao_id)?;
@@ -169,7 +175,7 @@ pub mod pallet {
 		///
 		/// Tokens can only be issued once and the signer of this TX needs to be the owner
 		/// of the DAO.
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::issue_token())]
 		pub fn issue_token(
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,

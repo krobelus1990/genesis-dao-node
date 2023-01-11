@@ -321,6 +321,7 @@ impl pallet_dao_core::Config for Runtime {
 	type DaoDeposit = ConstU128<10>;
 	type TokenUnits = ConstU8<9>;
 	type AssetId = u32;
+	type WeightInfo = pallet_dao_core::weights::SubstrateWeight<Runtime>;
 }
 
 
