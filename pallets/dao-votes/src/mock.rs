@@ -110,9 +110,8 @@ impl pallet_dao_core::Config for Test {
 	type Currency = Balances;
 	type DaoDeposit = ConstU128<10>;
     type TokenUnits = ConstU8<9>;
-    type DaoFeeInBasisPoints = ConstU8<50>;
-	type DaoFeeReceiver = ConstU32<5>;
 	type AssetId = u32;
+	type WeightInfo = ();
 }
 
 impl pallet_dao_votes::Config for Test {
