@@ -52,7 +52,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn create_vote(origin: OriginFor<T>, in_favour: bool) -> DispatchResult {
+		pub fn create_vote(origin: OriginFor<T>) -> DispatchResult {
 			ensure_signed(origin)?;
 			Ok(())
 		}
