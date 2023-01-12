@@ -1,12 +1,12 @@
 [package]
-name = "pallet-dao-token"
+name = "pallet-dao-assets"
 version = "4.0.0-dev"
 authors = ["chp"]
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://deep-ink.ventures"
 repository = "https://github.com/deep-ink-ventures/genesis-dao/"
-description = "FRAME dao token"
+description = "FRAME dao assets"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

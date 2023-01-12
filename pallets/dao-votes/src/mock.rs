@@ -28,7 +28,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system,
 		Balances: pallet_balances,
-		Assets: pallet_assets,
+		Assets: pallet_dao_assets,
 		DaoCore: pallet_dao_core,
 		DaoVotes: pallet_dao_votes
 	}
@@ -75,7 +75,6 @@ impl pallet_balances::Config for Test {
 
 
 parameter_types! {
-	// we're not really using this, as reservation is via DAO, but whatever
 	pub const AssetDeposit: Balance = 1;
 	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
@@ -83,7 +82,7 @@ parameter_types! {
 	pub const MetadataDepositPerByte: Balance = 1;
 }
 
-impl pallet_assets::Config for Test {
+impl pallet_dao_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type AssetId = u32;

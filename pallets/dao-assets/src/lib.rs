@@ -4,12 +4,18 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use pallet::*;
+use sp_std::prelude::*;
+
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+
 #[cfg(test)]
 pub mod mock;
+
 #[cfg(test)]
 mod tests;
+
 pub mod weights;
 
 mod extra_mutator;
@@ -18,6 +24,7 @@ mod functions;
 mod impl_fungibles;
 mod impl_stored_map;
 mod types;
+
 pub use types::*;
 
 use scale_info::TypeInfo;
@@ -27,7 +34,7 @@ use sp_runtime::{
 	},
 	ArithmeticError, TokenError,
 };
-use sp_std::{borrow::Borrow, prelude::*};
+use sp_std::{borrow::Borrow};
 
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
@@ -42,7 +49,6 @@ use frame_support::{
 };
 use frame_system::Config as SystemConfig;
 
-pub use pallet::*;
 pub use weights::WeightInfo;
 
 type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;

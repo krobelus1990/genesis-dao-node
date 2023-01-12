@@ -3917,6 +3917,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-dao-assets"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-dao-core"
 version = "4.0.0-dev"
 dependencies = [
@@ -3934,29 +3950,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-dao-token"
-version = "4.0.0-dev"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-dao-votes"
 version = "4.0.0-dev"
 dependencies = [
  "frame-support",
  "frame-system",
- "pallet-assets",
  "pallet-balances",
+ "pallet-dao-assets",
  "pallet-dao-core",
  "parity-scale-codec",
  "scale-info",

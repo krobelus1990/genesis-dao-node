@@ -1,7 +1,7 @@
 //! Test environment for Assets pallet.
 
 use super::*;
-use crate as pallet_dao_token;
+use crate as pallet_dao_assets;
 
 use frame_support::{
 	construct_runtime, parameter_types,
@@ -24,7 +24,7 @@ construct_runtime!(
 	{
 		System: frame_system,
 		Balances: pallet_balances,
-		Assets: pallet_dao_token,
+		Assets: pallet_dao_assets,
 	}
 );
 
@@ -137,7 +137,7 @@ pub(crate) fn take_hooks() -> Vec<Hook> {
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-	let config: pallet_dao_token::GenesisConfig<Test> = pallet_dao_token::GenesisConfig {
+	let config: pallet_dao_assets::GenesisConfig<Test> = pallet_dao_assets::GenesisConfig {
 		assets: vec![
 			// id, owner, is_sufficient, min_balance
 			(999, 0, true, 1),

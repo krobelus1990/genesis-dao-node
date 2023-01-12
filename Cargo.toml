@@ -2,7 +2,7 @@
 members = [
     "node",
     "pallets/dao-core",
-	"pallets/dao-token",
+	"pallets/dao-assets",
     "pallets/dao-votes",
     "runtime/local",
 ]

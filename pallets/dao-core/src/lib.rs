@@ -3,19 +3,6 @@
 pub use pallet::*;
 use sp_std::prelude::*;
 
-pub use frame_support::{
-	storage::bounded_vec::BoundedVec,
-	traits::{
-		tokens::fungibles::{
-            Create, Mutate,
-            metadata::Mutate as MetadataMutate
-		},
-		Currency,
-	},
-	sp_runtime::traits::{Saturating, One},
-	weights::Weight
-};
-
 #[cfg(test)]
 mod mock;
 
@@ -30,6 +17,20 @@ mod functions;
 mod types;
 pub use types::Dao;
 use pallet_assets;
+
+pub use frame_support::{
+	storage::bounded_vec::BoundedVec,
+	traits::{
+		tokens::fungibles::{
+			Create, Mutate,
+			metadata::Mutate as MetadataMutate
+		},
+		Currency,
+	},
+	sp_runtime::traits::{Saturating, One},
+	weights::Weight
+};
+
 
 type DepositBalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type AssetIdOf<T> = <T as Config>::AssetId;
