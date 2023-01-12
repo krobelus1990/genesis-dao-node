@@ -45,9 +45,14 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	{
+		#[pallet::weight(0)]
+		pub fn create_proposal(origin: OriginFor<T>) -> DispatchResult {
+			ensure_signed(origin)?;
+			Ok(())
+		}
 
 		#[pallet::weight(0)]
-		pub fn create_vote(origin: OriginFor<T>) -> DispatchResult {
+		pub fn create_vote(origin: OriginFor<T>, in_favour: bool) -> DispatchResult {
 			ensure_signed(origin)?;
 			Ok(())
 		}
