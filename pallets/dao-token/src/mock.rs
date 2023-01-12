@@ -1,24 +1,7 @@
-// This file is part of Substrate.
-
-// Copyright (C) 2019-2022 Parity Technologies (UK) Ltd.
-// SPDX-License-Identifier: Apache-2.0
-
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// 	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 //! Test environment for Assets pallet.
 
 use super::*;
-use crate as pallet_assets;
+use crate as pallet_dao_token;
 
 use frame_support::{
 	construct_runtime, parameter_types,
@@ -39,9 +22,9 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+		System: frame_system,
+		Balances: pallet_balances,
+		Assets: pallet_dao_token,
 	}
 );
 
@@ -154,7 +137,7 @@ pub(crate) fn take_hooks() -> Vec<Hook> {
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-	let config: pallet_assets::GenesisConfig<Test> = pallet_assets::GenesisConfig {
+	let config: pallet_dao_token::GenesisConfig<Test> = pallet_dao_token::GenesisConfig {
 		assets: vec![
 			// id, owner, is_sufficient, min_balance
 			(999, 0, true, 1),
