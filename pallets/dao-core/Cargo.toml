@@ -18,7 +18,7 @@ scale-info = { version = "2.1.1", default-features = false, features = ["derive"
 frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
 frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
 pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
-pallet-assets = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
+pallet-dao-assets = { version = "4.0.0-dev", default-features = false,  path = "../dao-assets" }
 sp-std = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.35", default-features = false }
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35", optional = true }
@@ -39,7 +39,7 @@ std = [
 	"scale-info/std",
 	"sp-runtime/std",
 	"pallet-balances/std",
-	"pallet-assets/std",
+	"pallet-dao-assets/std",
 ]
 
 try-runtime = [

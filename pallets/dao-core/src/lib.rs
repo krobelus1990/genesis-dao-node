@@ -16,7 +16,7 @@ mod functions;
 
 mod types;
 pub use types::Dao;
-use pallet_assets;
+use pallet_dao_assets;
 
 pub use frame_support::{
 	storage::bounded_vec::BoundedVec,
@@ -55,12 +55,12 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_assets::Config {
+	pub trait Config: frame_system::Config + pallet_dao_assets::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		type Currency: ReservableCurrency<Self::AccountId>;
 
-		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
+		type AssetId: IsType<<Self as pallet_dao_assets::Config>::AssetId>
 			+ Parameter
 			+ Default
 			+ MaxEncodedLen
@@ -87,7 +87,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		DaoCreated { owner: T::AccountId, dao_id: BoundedVec<u8, T::MaxLength>},
 		DaoDestroyed { dao_id: BoundedVec<u8, T::MaxLength> },
-        DaoTokenIssued { dao_id: BoundedVec<u8, T::MaxLength>, supply: <T as pallet_assets::Config>::Balance },
+        DaoTokenIssued { dao_id: BoundedVec<u8, T::MaxLength>, supply: <T as pallet_dao_assets::Config>::Balance },
 	}
 
 	#[pallet::error]
@@ -180,7 +180,7 @@ pub mod pallet {
 		pub fn issue_token(
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,
-			supply: <T as pallet_assets::Config>::Balance
+			supply: <T as pallet_dao_assets::Config>::Balance
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let dao = Self::load_dao(dao_id)?;
@@ -189,7 +189,7 @@ pub mod pallet {
 
 			// // create a fresh asset
 			<CurrentAssetId<T>>::mutate(|asset_id| asset_id.saturating_inc());
-			<pallet_assets::pallet::Pallet<T> as Create<T::AccountId>>::create(
+			<pallet_dao_assets::pallet::Pallet<T> as Create<T::AccountId>>::create(
 				<CurrentAssetId<T>>::get().into(),
         	    dao.owner.clone(),
     	        true,
@@ -197,14 +197,14 @@ pub mod pallet {
             )?;
 
 			// and distribute it to the owner
-			<pallet_assets::pallet::Pallet<T> as Mutate<T::AccountId>>::mint_into(
+			<pallet_dao_assets::pallet::Pallet<T> as Mutate<T::AccountId>>::mint_into(
                 <CurrentAssetId<T>>::get().into(),
                 &dao.owner,
                 supply
             )?;
 
 			// set the token metadata to the dao metadata
-            <pallet_assets::pallet::Pallet<T> as MetadataMutate<T::AccountId>>::set(
+            <pallet_dao_assets::pallet::Pallet<T> as MetadataMutate<T::AccountId>>::set(
                 <CurrentAssetId<T>>::get().into(),
                 &dao.owner,
                 dao.name.into(),

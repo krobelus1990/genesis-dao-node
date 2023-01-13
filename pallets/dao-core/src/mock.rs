@@ -30,7 +30,7 @@ frame_support::construct_runtime!(
 		System: frame_system,
 		DaoCore: pallet_dao_core,
 		Balances: pallet_balances,
-		Assets: pallet_assets,
+		Assets: pallet_dao_assets,
 	}
 );
 
@@ -82,7 +82,7 @@ parameter_types! {
 	pub const MetadataDepositPerByte: Balance = 1;
 }
 
-impl pallet_assets::Config for Test {
+impl pallet_dao_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type AssetId = u32;

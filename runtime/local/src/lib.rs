@@ -56,7 +56,7 @@ pub use constants::currency::{UNITS, Balance, deposit};
 /// Import the dao pallets ...
 pub use pallet_dao_core;
 
-pub use pallet_assets;
+pub use pallet_dao_assets;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -289,7 +289,7 @@ parameter_types! {
 	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
 }
 
-impl pallet_assets::Config for Runtime {
+impl pallet_dao_assets::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type AssetId = u32;
@@ -343,7 +343,7 @@ construct_runtime!(
 
 		DaoCore: pallet_dao_core,
 		Balances: pallet_balances,
-		Assets: pallet_assets,
+		Assets: pallet_dao_assets,
 	}
 );
 
@@ -389,7 +389,7 @@ mod benches {
 		[frame_benchmarking, BaselineBench::<Runtime>]
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
-		[pallet_assets, Assets]
+		[pallet_dao_assets, Assets]
 		[pallet_timestamp, Timestamp]
 		[pallet_dao_core, DaoCore]
 	);
