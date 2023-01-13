@@ -13,6 +13,8 @@ mod mock;
 mod tests;
 
 mod types;
+pub use types::{Proposal, Vote};
+
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -30,6 +32,9 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+		// #[pallet::constant]
+		// type MaxIdLength: Get<u32>;
 	}
 
 	#[pallet::event]
@@ -47,13 +52,21 @@ pub mod pallet {
 	{
 		#[pallet::weight(0)]
 		pub fn create_proposal(origin: OriginFor<T>) -> DispatchResult {
-			ensure_signed(origin)?;
+			let sender = ensure_signed(origin)?;
+
+			// want to reserve x amount of DAO Tokens for the creation of proposal
+			// add the proposal to the storage
+			// emit an event
 			Ok(())
 		}
 
 		#[pallet::weight(0)]
 		pub fn create_vote(origin: OriginFor<T>) -> DispatchResult {
-			ensure_signed(origin)?;
+			let sender = ensure_signed(origin)?;
+
+			// would check if a proposal exists with the given id
+			// would check if the proposal is still live (hardcoded duration in relation to the created event)
+			// store the vote with in favour or not in favour and the voter
 			Ok(())
 		}
 	}
