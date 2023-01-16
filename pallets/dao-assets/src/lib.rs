@@ -71,6 +71,7 @@ pub mod pallet {
 	pub trait BenchmarkHelper<AssetIdParameter> {
 		fn create_asset_id_parameter(id: u32) -> AssetIdParameter;
 	}
+
 	#[cfg(feature = "runtime-benchmarks")]
 	impl<AssetIdParameter: From<u32>> BenchmarkHelper<AssetIdParameter> for () {
 		fn create_asset_id_parameter(id: u32) -> AssetIdParameter {
@@ -82,8 +83,7 @@ pub mod pallet {
 	/// The module configuration trait.
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// The overarching event type.
-		type RuntimeEvent: From<Event<Self, I>>
-			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type RuntimeEvent: From<Event<Self, I>>+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The units in which we record balances.
 		type Balance: Member
@@ -426,98 +426,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-		/// Issue a new class of fungible assets from a public origin.
-		///
-		/// This new asset class has no assets initially and its owner is the origin.
-		///
-		/// The origin must conform to the configured `CreateOrigin` and have sufficient funds free.
-		///
-		/// Funds of sender are reserved by `AssetDeposit`.
-		///
-		/// Parameters:
-		/// - `id`: The identifier of the new asset. This must not be currently in use to identify
-		/// an existing asset.
-		/// - `admin`: The admin of this class of assets. The admin is the initial address of each
-		/// member of the asset class's admin team.
-		/// - `min_balance`: The minimum balance of this new asset that any single account must
-		/// have. If an account's balance is reduced below this, then it collapses to zero.
-		///
-		/// Emits `Created` event when successful.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::create())]
-		pub fn create(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			admin: AccountIdLookupOf<T>,
-			min_balance: T::Balance,
-		) -> DispatchResult {
-			let id: T::AssetId = id.into();
-			let owner = T::CreateOrigin::ensure_origin(origin, &id)?;
-			let admin = T::Lookup::lookup(admin)?;
-
-			ensure!(!Asset::<T, I>::contains_key(id), Error::<T, I>::InUse);
-			ensure!(!min_balance.is_zero(), Error::<T, I>::MinBalanceZero);
-
-			let deposit = T::AssetDeposit::get();
-			T::Currency::reserve(&owner, deposit)?;
-
-			Asset::<T, I>::insert(
-				id,
-				AssetDetails {
-					owner: owner.clone(),
-					issuer: admin.clone(),
-					admin: admin.clone(),
-					freezer: admin.clone(),
-					supply: Zero::zero(),
-					deposit,
-					min_balance,
-					is_sufficient: false,
-					accounts: 0,
-					sufficients: 0,
-					approvals: 0,
-					status: AssetStatus::Live,
-				},
-			);
-			Self::deposit_event(Event::Created { asset_id: id, creator: owner, owner: admin });
-			Ok(())
-		}
-
-		/// Issue a new class of fungible assets from a privileged origin.
-		///
-		/// This new asset class has no assets initially.
-		///
-		/// The origin must conform to `ForceOrigin`.
-		///
-		/// Unlike `create`, no funds are reserved.
-		///
-		/// - `id`: The identifier of the new asset. This must not be currently in use to identify
-		/// an existing asset.
-		/// - `owner`: The owner of this class of assets. The owner has full superuser permissions
-		/// over this asset, but may later change and configure the permissions using
-		/// `transfer_ownership` and `set_team`.
-		/// - `min_balance`: The minimum balance of this new asset that any single account must
-		/// have. If an account's balance is reduced below this, then it collapses to zero.
-		///
-		/// Emits `ForceCreated` event when successful.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::force_create())]
-		pub fn force_create(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			owner: AccountIdLookupOf<T>,
-			is_sufficient: bool,
-			#[pallet::compact] min_balance: T::Balance,
-		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
-			let owner = T::Lookup::lookup(owner)?;
-			let id: T::AssetId = id.into();
-			Self::do_force_create(id, owner, is_sufficient, min_balance)
-		}
-
 		/// Start the process of destroying a fungible asset class.
 		///
 		/// `start_destroy` is the first in a series of extrinsics that should be called, to allow
