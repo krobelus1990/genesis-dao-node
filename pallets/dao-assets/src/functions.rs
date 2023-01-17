@@ -728,7 +728,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 					T::Currency::unreserve(&owner, approval.deposit);
 					removed_approvals = removed_approvals.saturating_add(1);
 					details.approvals = details.approvals.saturating_sub(1);
-					if removed_approvals >= max_items {
+					if removed_approvals >= max_items.into() {
 						break
 					}
 				}

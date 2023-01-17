@@ -514,33 +514,6 @@ pub mod pallet {
 			Self::do_finish_destroy(id)
 		}
 
-		/// Mint assets of a particular class.
-		///
-		/// The origin must be Signed and the sender must be the Issuer of the asset `id`.
-		///
-		/// - `id`: The identifier of the asset to have some amount minted.
-		/// - `beneficiary`: The account to be credited with the minted assets.
-		/// - `amount`: The amount of the asset to be minted.
-		///
-		/// Emits `Issued` event when successful.
-		///
-		/// Weight: `O(1)`
-		/// Modes: Pre-existing balance of `beneficiary`; Account pre-existence of `beneficiary`.
-		#[pallet::call_index(6)]
-		#[pallet::weight(T::WeightInfo::mint())]
-		pub fn mint(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			beneficiary: AccountIdLookupOf<T>,
-			#[pallet::compact] amount: T::Balance,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let beneficiary = T::Lookup::lookup(beneficiary)?;
-			let id: T::AssetId = id.into();
-			Self::do_mint(id, &beneficiary, amount, Some(origin))?;
-			Ok(())
-		}
-
 		/// Reduce the balance of `who` by as much as possible up to `amount` assets of `id`.
 		///
 		/// Origin must be Signed and the sender should be the Manager of the asset `id`.
