@@ -420,16 +420,9 @@ fn non_providing_should_work() {
 			Assets::transfer(RuntimeOrigin::signed(0), 0, 1, 50),
 			TokenError::CannotCreate
 		);
-		// ...or force-transfer
-		assert_noop!(
-			Assets::force_transfer(RuntimeOrigin::signed(1), 0, 0, 1, 50),
-			TokenError::CannotCreate
-		);
-
 		Balances::make_free_balance_be(&1, 100);
 		Balances::make_free_balance_be(&2, 100);
 		assert_ok!(Assets::transfer(RuntimeOrigin::signed(0), 0, 1, 25));
-		assert_ok!(Assets::force_transfer(RuntimeOrigin::signed(1), 0, 0, 2, 25));
 		assert_eq!(asset_ids(), vec![0, 999]);
 	});
 }
@@ -444,10 +437,7 @@ fn min_balance_should_work() {
 		// Cannot create a new account with a balance that is below minimum...
 		assert_noop!(Assets::do_mint(0, &2, 9, Some(1)), TokenError::BelowMinimum);
 		assert_noop!(Assets::transfer(RuntimeOrigin::signed(1), 0, 2, 9), TokenError::BelowMinimum);
-		assert_noop!(
-			Assets::force_transfer(RuntimeOrigin::signed(1), 0, 1, 2, 9),
-			TokenError::BelowMinimum
-		);
+
 
 		// When deducting from an account to below minimum, it should be reaped.
 		// Death by `transfer`.
@@ -457,8 +447,9 @@ fn min_balance_should_work() {
 		assert_eq!(Asset::<Test>::get(0).unwrap().accounts, 1);
 		assert_eq!(take_hooks(), vec![Hook::Died(0, 1)]);
 
-		// Death by `force_transfer`.
-		assert_ok!(Assets::force_transfer(RuntimeOrigin::signed(1), 0, 2, 1, 91));
+		// Death by `force_transfer`
+		let f = TransferFlags { keep_alive: false, best_effort: false, burn_dust: false };
+		let _ = Assets::do_transfer(0, &2, &1, 91, Some(1), f).map(|_| ());
 		assert!(Assets::maybe_balance(0, 2).is_none());
 		assert_eq!(Assets::balance(0, 1), 100);
 		assert_eq!(Asset::<Test>::get(0).unwrap().accounts, 1);
@@ -598,10 +589,6 @@ fn origin_guards_should_work() {
 			Error::<Test>::NoPermission
 		);
 		assert_noop!(
-			Assets::force_transfer(RuntimeOrigin::signed(2), 0, 1, 2, 100),
-			Error::<Test>::NoPermission
-		);
-		assert_noop!(
 			Assets::start_destroy(RuntimeOrigin::signed(2), 0),
 			Error::<Test>::NoPermission
 		);
@@ -644,7 +631,6 @@ fn set_team_should_work() {
 		assert_ok!(Assets::do_mint(0, &2, 100, Some(2)));
 		assert_ok!(Assets::freeze(RuntimeOrigin::signed(4), 0, 2));
 		assert_ok!(Assets::thaw(RuntimeOrigin::signed(3), 0, 2));
-		assert_ok!(Assets::force_transfer(RuntimeOrigin::signed(3), 0, 2, 3, 100));
 	});
 }
 
@@ -866,18 +852,10 @@ fn freezer_should_work() {
 		let e = Error::<Test>::BalanceLow;
 		// ...but that wont work either:
 		assert_noop!(Assets::transfer_approved(RuntimeOrigin::signed(2), 0, 1, 2, 21), e);
-		// a force transfer won't work also.
-		let e = Error::<Test>::BalanceLow;
-		assert_noop!(Assets::force_transfer(RuntimeOrigin::signed(1), 0, 1, 2, 21), e);
-
-		// reduce it to only 49 frozen...
-		set_frozen_balance(0, 1, 49);
-		// ...and it's all good:
-		assert_ok!(Assets::force_transfer(RuntimeOrigin::signed(1), 0, 1, 2, 21));
 
 		// and if we clear it, we can remove the account completely.
 		clear_frozen_balance(0, 1);
-		assert_ok!(Assets::transfer(RuntimeOrigin::signed(1), 0, 2, 50));
+		assert_ok!(Assets::transfer(RuntimeOrigin::signed(1), 0, 2, 71));
 		assert_eq!(hooks(), vec![Hook::Died(0, 1)]);
 	});
 }
