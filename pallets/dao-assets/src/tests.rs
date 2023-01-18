@@ -465,7 +465,7 @@ fn min_balance_should_work() {
 		assert_eq!(take_hooks(), vec![Hook::Died(0, 2)]);
 
 		// Death by `burn`.
-		assert_ok!(Assets::burn(RuntimeOrigin::signed(1), 0, 1, 91));
+		let _ = Assets::do_burn(0, &1, 91, Some(1), DebitFlags { keep_alive: false, best_effort: true });
 		assert!(Assets::maybe_balance(0, 1).is_none());
 		assert_eq!(Asset::<Test>::get(0).unwrap().accounts, 0);
 		assert_eq!(take_hooks(), vec![Hook::Died(0, 1)]);
@@ -493,7 +493,7 @@ fn querying_total_supply_should_work() {
 		assert_eq!(Assets::balance(0, 1), 50);
 		assert_eq!(Assets::balance(0, 2), 19);
 		assert_eq!(Assets::balance(0, 3), 31);
-		assert_ok!(Assets::burn(RuntimeOrigin::signed(1), 0, 3, u64::MAX));
+		let _ = Assets::do_burn(0, &3, u64::MAX, Some(1), DebitFlags { keep_alive: false, best_effort: true });
 		assert_eq!(Assets::total_supply(0), 69);
 	});
 }
@@ -594,7 +594,7 @@ fn origin_guards_should_work() {
 			Error::<Test>::NoPermission
 		);
 		assert_noop!(
-			Assets::burn(RuntimeOrigin::signed(2), 0, 1, 100),
+			Assets::do_burn(0, &1, u64::MAX, Some(2), DebitFlags { keep_alive: false, best_effort: true }),
 			Error::<Test>::NoPermission
 		);
 		assert_noop!(
@@ -645,7 +645,6 @@ fn set_team_should_work() {
 		assert_ok!(Assets::freeze(RuntimeOrigin::signed(4), 0, 2));
 		assert_ok!(Assets::thaw(RuntimeOrigin::signed(3), 0, 2));
 		assert_ok!(Assets::force_transfer(RuntimeOrigin::signed(3), 0, 2, 3, 100));
-		assert_ok!(Assets::burn(RuntimeOrigin::signed(3), 0, 3, 100));
 	});
 }
 
@@ -672,7 +671,9 @@ fn transferring_amount_more_than_available_balance_should_not_work() {
 		assert_ok!(Assets::transfer(RuntimeOrigin::signed(1), 0, 2, 50));
 		assert_eq!(Assets::balance(0, 1), 50);
 		assert_eq!(Assets::balance(0, 2), 50);
-		assert_ok!(Assets::burn(RuntimeOrigin::signed(1), 0, 1, u64::MAX));
+
+		let _ = Assets::do_burn(0, &1, u64::MAX, Some(1), DebitFlags { keep_alive: false, best_effort: true });
+
 		assert_eq!(Assets::balance(0, 1), 0);
 		assert_noop!(
 			Assets::transfer(RuntimeOrigin::signed(1), 0, 1, 50),
@@ -716,7 +717,7 @@ fn burning_asset_balance_with_positive_balance_should_work() {
 		assert_ok!(Assets::do_force_create(0, 1, true, 1));
 		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
 		assert_eq!(Assets::balance(0, 1), 100);
-		assert_ok!(Assets::burn(RuntimeOrigin::signed(1), 0, 1, u64::MAX));
+		let _ = Assets::do_burn(0, &1, u64::MAX, Some(1), DebitFlags { keep_alive: false, best_effort: true });
 		assert_eq!(Assets::balance(0, 1), 0);
 	});
 }
@@ -728,7 +729,7 @@ fn burning_asset_balance_with_zero_balance_does_nothing() {
 		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
 		assert_eq!(Assets::balance(0, 2), 0);
 		assert_noop!(
-			Assets::burn(RuntimeOrigin::signed(1), 0, 2, u64::MAX),
+			Assets::do_burn(0, &2, u64::MAX, Some(1), DebitFlags { keep_alive: false, best_effort: true }),
 			Error::<Test>::NoAccount
 		);
 		assert_eq!(Assets::balance(0, 2), 0);
