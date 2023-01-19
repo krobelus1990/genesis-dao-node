@@ -12,7 +12,7 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-mod functions;
+pub mod functions;
 
 mod types;
 pub use types::Dao;

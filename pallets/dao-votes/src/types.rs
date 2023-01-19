@@ -1,21 +1,19 @@
 use codec::MaxEncodedLen;
 use frame_support::RuntimeDebug;
 
-use frame_support::codec::{Encode, Decode};
+use frame_support::codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct Proposal<BoundedString, DaoId, AccountId> {
-	pub id: BoundedString,
+pub struct Proposal<Id, DaoId, AccountId> {
+	pub id: Id,
 	pub dao_id: DaoId,
 	pub creator: AccountId,
-	// pub created_at: timestsamp
+	// pub created_at: timestamp
 }
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct Vote<BoundedString, ProposalId, AccountId> {
-	pub id: BoundedString,
-	pub proposal_id: ProposalId,
+pub struct Vote<AccountId> {
 	pub voter: AccountId,
-	pub in_favour: bool
+	pub aye: bool,
 }
