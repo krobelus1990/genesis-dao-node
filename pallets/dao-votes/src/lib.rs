@@ -1,13 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
-use dao_core::{Config, Pallet as DaoCore};
 pub use frame_support::{
 	sp_runtime::traits::{One, Saturating},
 	storage::bounded_vec::BoundedVec,
 	traits::ReservableCurrency,
 };
-use pallet_dao_core::{self as dao_core};
+use pallet_dao_core::{Pallet as DaoCore};
+
 #[cfg(test)]
 mod mock;
 
@@ -17,8 +17,8 @@ mod tests;
 mod types;
 pub use types::{Proposal, Vote};
 
-type DaoId<T> = BoundedVec<u8, <T as Config>::MaxLength>;
-type ProposalId<T> = BoundedVec<u8, <T as dao_core::Config>::MaxLength>;
+type DaoId<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLength>;
+type ProposalId<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLength>;
 
 type ProposalOf<T> = Proposal<ProposalId<T>, DaoId<T>, <T as frame_system::Config>::AccountId>;
 type VoteOf<T> = Vote<<T as frame_system::Config>::AccountId>;
@@ -41,7 +41,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + dao_core::Config {
+	pub trait Config: frame_system::Config + pallet_dao_core::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		// #[pallet::constant]

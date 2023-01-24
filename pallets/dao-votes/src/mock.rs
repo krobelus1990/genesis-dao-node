@@ -1,18 +1,18 @@
 use crate as pallet_dao_votes;
-use frame_support::traits::{
-	AsEnsureOriginWithArg, ConstU8, ConstU16, ConstU32, ConstU64, ConstU128
+use frame_support::{
+	parameter_types,
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU16, ConstU32, ConstU64, ConstU8},
 };
-use frame_support::parameter_types;
 use frame_system as system;
 use sp_core::H256;
+
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup}
+	traits::{BlakeTwo256, IdentityLookup},
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
-
 
 pub(crate) type Balance = u128;
 
@@ -73,7 +73,6 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = [u8; 8];
 }
 
-
 parameter_types! {
 	pub const AssetDeposit: Balance = 1;
 	pub const ApprovalDeposit: Balance = 1;
@@ -108,7 +107,7 @@ impl pallet_dao_core::Config for Test {
 	type MaxLength = ConstU32<16>;
 	type Currency = Balances;
 	type DaoDeposit = ConstU128<10>;
-    type TokenUnits = ConstU8<9>;
+	type TokenUnits = ConstU8<9>;
 	type AssetId = u32;
 	type WeightInfo = ();
 }
@@ -119,15 +118,10 @@ impl pallet_dao_votes::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![
-			(1, 100),
-		],
-	}
-	.assimilate_storage(&mut t)
-	.unwrap();
+	pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 100)] }
+		.assimilate_storage(&mut t)
+		.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
