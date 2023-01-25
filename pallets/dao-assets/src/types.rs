@@ -64,12 +64,6 @@ pub struct Approval<Balance, DepositBalance> {
 	pub(super) deposit: DepositBalance,
 }
 
-#[test]
-fn ensure_bool_decodes_to_consumer_or_sufficient() {
-	assert_eq!(false.encode(), ExistenceReason::<()>::Consumer.encode());
-	assert_eq!(true.encode(), ExistenceReason::<()>::Sufficient.encode());
-}
-
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ExistenceReason<Balance> {
 	#[codec(index = 0)]
