@@ -15,7 +15,7 @@ use DeadConsequence::*;
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	// Public immutables
 
-	/// Return the extra "sid-car" data for `id`/`who`, or `None` if the account doesn't exist.
+	/// Return the extra "side-car" data for `id`/`who`, or `None` if the account doesn't exist.
 	pub fn adjust_extra(
 		id: T::AssetId,
 		who: impl sp_std::borrow::Borrow<T::AccountId>,
@@ -23,17 +23,30 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		ExtraMutator::maybe_new(id, who)
 	}
 
-	/// Get the asset `id` balance of `who`, or zero if the asset-account doesn't exist.
+	/// Get the asset `id` free balance of `who`, or zero if the asset-account doesn't exist.
 	pub fn balance(id: T::AssetId, who: impl sp_std::borrow::Borrow<T::AccountId>) -> T::Balance {
 		Self::maybe_balance(id, who).unwrap_or_default()
 	}
 
-	/// Get the asset `id` balance of `who` if the asset-account exists.
+	/// Get the asset `id` reserved balance of `who`, or zero if the asset-account doesn't exist.
+	pub fn reserved(id: T::AssetId, who: impl sp_std::borrow::Borrow<T::AccountId>) -> T::Balance {
+		Self::maybe_reserved(id, who).unwrap_or_default()
+	}
+
+	/// Get the asset `id` free balance of `who` if the asset-account exists.
 	pub fn maybe_balance(
 		id: T::AssetId,
 		who: impl sp_std::borrow::Borrow<T::AccountId>,
 	) -> Option<T::Balance> {
 		Account::<T, I>::get(id, who.borrow()).map(|a| a.balance)
+	}
+
+	/// Get the asset `id` reserved balance of `who` if the asset-account exists.
+	pub fn maybe_reserved(
+		id: T::AssetId,
+		who: impl sp_std::borrow::Borrow<T::AccountId>,
+	) -> Option<T::Balance> {
+		Account::<T, I>::get(id, who.borrow()).map(|a| a.reserved)
 	}
 
 	/// Get the total supply of an asset `id`.
@@ -292,6 +305,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			&who,
 			AssetAccountOf::<T, I> {
 				balance: Zero::zero(),
+				reserved: Zero::zero(),
 				is_frozen: false,
 				reason,
 				extra: T::Extra::default(),
@@ -386,6 +400,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 						ensure!(amount >= details.min_balance, TokenError::BelowMinimum);
 						*maybe_account = Some(AssetAccountOf::<T, I> {
 							balance: amount,
+							reserved: Zero::zero(),
 							reason: Self::new_account(beneficiary, details, None)?,
 							is_frozen: false,
 							extra: T::Extra::default(),
@@ -493,6 +508,37 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		Ok(actual)
 	}
 
+	/// Reserves some `amount` of asset `id` balance of `target`.
+	pub(super) fn do_reserve(
+		id: T::AssetId,
+		target: &T::AccountId,
+		amount: T::Balance,
+	) -> Result<T::Balance, DispatchError> {
+		if amount.is_zero() {
+			return Ok(amount)
+		}
+
+		let details = Asset::<T, I>::get(id).ok_or(Error::<T, I>::Unknown)?;
+		ensure!(details.status == AssetStatus::Live, Error::<T, I>::AssetNotLive);
+
+		let f = DebitFlags { keep_alive: true, best_effort: false };
+
+		let actual = Self::prep_debit(id, target, amount, f)?;
+
+		Account::<T, I>::try_mutate(id, target, |maybe_account| -> DispatchResult {
+			let mut account = maybe_account.take().ok_or(Error::<T, I>::NoAccount)?;
+			debug_assert!(account.balance >= actual, "checked in prep; qed");
+
+			// Make the reservation.
+			account.balance = account.balance.saturating_sub(actual);
+			account.reserved = account.reserved.saturating_add(actual);
+			*maybe_account = Some(account);
+			Ok(())
+		})?;
+
+		Ok(actual)
+	}
+
 	/// Reduces the asset `id` balance of `source` by some `amount` and increases the balance of
 	/// `dest` by (similar) amount.
 	///
@@ -581,6 +627,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 					maybe_account @ None => {
 						*maybe_account = Some(AssetAccountOf::<T, I> {
 							balance: credit,
+							reserved: Zero::zero(),
 							is_frozen: false,
 							reason: Self::new_account(dest, details, None)?,
 							extra: T::Extra::default(),
