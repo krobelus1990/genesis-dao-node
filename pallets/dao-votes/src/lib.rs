@@ -1,11 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use pallet::*;
 pub use frame_support::{
 	sp_runtime::traits::{One, Saturating},
 	storage::bounded_vec::BoundedVec,
 	traits::ReservableCurrency,
 };
+pub use pallet::*;
 
 #[cfg(test)]
 mod mock;
@@ -30,7 +30,8 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::storage]
-	pub(super) type Proposals<T: Config> = StorageMap<_, Twox64Concat, DaoId<T>, ProposalOf<T>>;
+	pub(super) type Proposals<T: Config> =
+		StorageMap<_, Twox64Concat, ProposalId<T>, ProposalOf<T>>;
 
 	#[pallet::storage]
 	pub(super) type Votes<T: Config> = StorageMap<_, Twox64Concat, ProposalId<T>, VoteOf<T>>;
@@ -67,23 +68,23 @@ pub mod pallet {
 		pub fn create_proposal(
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,
-			proposal_id: Vec<u8>,
+			prop_id: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
+			let dao_id = dao.id;
 			let asset_id = dao.asset_id.ok_or(Error::<T>::DaoTokenNotYetIssued)?;
 
-			// want to reserve x amount of DAO Tokens for the creation of proposal
-			//<T as dao_core::Config>::Currency::reserve(10);
-			pallet_dao_assets::Pallet::<T>::reserve(origin, asset_id.into().into(), One::one())?;
+			let prop_id: BoundedVec<_, _> =
+				prop_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
-			let proposal_id: BoundedVec<_, _> =
-				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
+			// want to reserve x amount of DAO Tokens for the creation of proposal
+			pallet_dao_assets::Pallet::<T>::reserve(origin, asset_id.into().into(), One::one())?;
 
 			// store the proposal
 			<Proposals<T>>::insert(
-				dao.id.clone(),
-				Proposal { id: proposal_id, dao_id: dao.id, creator: sender },
+				prop_id.clone(),
+				Proposal { id: prop_id, dao_id, creator: sender },
 			);
 			// emit an event
 			Self::deposit_event(Event::<T>::ProposalCreated {});
@@ -101,7 +102,10 @@ pub mod pallet {
 				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			// check that a proposal exists with the given id
-			ensure!(<Proposals<T>>::contains_key(proposal_id.clone()), Error::<T>::ProposalDoesNotExist);
+			ensure!(
+				<Proposals<T>>::contains_key(proposal_id.clone()),
+				Error::<T>::ProposalDoesNotExist
+			);
 
 			// check if the proposal is still live (hardcoded duration in relation to the
 			// created event) store the vote with in favour or not in favour and the voter
