@@ -539,6 +539,36 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		Ok(actual)
 	}
 
+
+	/// Unreserves some `amount` of asset `id` balance of `target`.
+	/// If `amount` is greater than reserved balance, then the whole reserved balance is unreserved.
+	pub(super) fn do_unreserve(
+		id: T::AssetId,
+		target: &T::AccountId,
+		mut amount: T::Balance,
+	) -> Result<T::Balance, DispatchError> {
+		if amount.is_zero() {
+			return Ok(amount)
+		}
+
+		// check asset is live
+		let details = Asset::<T, I>::get(id).ok_or(Error::<T, I>::Unknown)?;
+		ensure!(details.status == AssetStatus::Live, Error::<T, I>::AssetNotLive);
+
+		Account::<T, I>::try_mutate(id, target, |maybe_account| -> DispatchResult {
+			let mut account = maybe_account.take().ok_or(Error::<T, I>::NoAccount)?;
+
+			// Unreserve the minimum of amount and reserved balance
+			amount = amount.min(account.reserved);
+			account.balance = account.balance.saturating_add(amount);
+			account.reserved = account.reserved.saturating_sub(amount);
+			*maybe_account = Some(account);
+			Ok(())
+		})?;
+
+		Ok(amount)
+	}
+
 	/// Reduces the asset `id` balance of `source` by some `amount` and increases the balance of
 	/// `dest` by (similar) amount.
 	///
