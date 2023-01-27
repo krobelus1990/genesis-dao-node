@@ -514,6 +514,58 @@ pub mod pallet {
 			Self::do_finish_destroy(id)
 		}
 
+		/// Reserve some assets for an account.
+		///
+		/// Origin must be Signed.
+		///
+		/// - `id`: The identifier of the asset to have some amount reserved.
+		/// - `amount`: The amount by which the free balance of assets should be reduced and
+		/// the reserved balance increased. The amount actually transferred may be slightly greater in
+		/// the case that the transfer would otherwise take the sender balance above zero but below
+		/// the minimum balance. Must be greater than zero.
+		///
+		/// Emits `Reserved` with the actual amount reserved. If this takes the source balance
+		/// to below the minimum for the asset, then the amount transferred is increased to take it
+		/// to zero.
+		///
+		/// Weight: `O(1)`
+		#[pallet::call_index(6)]
+		#[pallet::weight(0)]
+		pub fn reserve(
+			origin: OriginFor<T>,
+			id: T::AssetIdParameter,
+			#[pallet::compact] amount: T::Balance,
+		) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			let id: T::AssetId = id.into();
+			// FIXME: do we want to emit an event?
+			Self::do_reserve(id, &origin, amount).map(|_| ())
+		}
+
+		/// Unreserve some assets for an account.
+		///
+		/// Origin must be Signed.
+		///
+		/// - `id`: The identifier of the asset to have some amount reserved.
+		/// - `amount`: The amount by which the free balance of assets should be increased and
+		/// the reserved balance reduced. Must be greater than zero.
+		///
+		/// Emits `Unreserved` with the actual amount reserved.
+		///
+		/// Weight: `O(1)`
+		#[pallet::call_index(7)]
+		#[pallet::weight(0)]
+		pub fn unreserve(
+			origin: OriginFor<T>,
+			id: T::AssetIdParameter,
+			#[pallet::compact] amount: T::Balance,
+		) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			let id: T::AssetId = id.into();
+			// FIXME: do we want to emit an event?
+			Self::do_unreserve(id, &origin, amount).map(|_| ())
+		}
+
 		/// Move some assets from the sender account to another.
 		///
 		/// Origin must be Signed.
