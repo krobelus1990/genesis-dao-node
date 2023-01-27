@@ -88,7 +88,7 @@ fn issues_a_token() {
         assert_eq!(Assets::decimals(asset_id), 9);
 
 		// payout
-        assert_eq!(Assets::balance(asset_id.clone(), &dao.owner), 1000);
+        assert_eq!(Assets::balance(asset_id, &dao.owner), 1000);
 
         // increment
         assert_ok!(DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO2".to_vec(), b"Genesis DAO 2".to_vec()));
