@@ -16,7 +16,7 @@ pub mod functions;
 
 mod types;
 pub use types::Dao;
-use pallet_dao_assets;
+
 
 pub use frame_support::{
 	storage::bounded_vec::BoundedVec,
@@ -145,7 +145,7 @@ pub mod pallet {
 			<Daos<T>>::insert(bounded_dao_id.clone(), Dao {
 				id: bounded_dao_id,
 				name: bounded_name,
-				owner: sender.clone(),
+				owner: sender,
 				asset_id: None
 			});
 			Ok(())

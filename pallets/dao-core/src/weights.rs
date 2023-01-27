@@ -64,16 +64,16 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn create_dao() -> Weight {
-		Weight::from_ref_time(182_000_000 as u64)
-			.saturating_add(T::DbWeight::get().reads(1 as u64))
-			.saturating_add(T::DbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(182_000_000_u64)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn destroy_dao() -> Weight {
-		Weight::from_ref_time(314_000_000 as u64)
-			.saturating_add(T::DbWeight::get().reads(1 as u64))
-			.saturating_add(T::DbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(314_000_000_u64)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	// Storage: DaoCore CurrentAssetId (r:1 w:1)
@@ -82,9 +82,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: Assets Metadata (r:1 w:1)
 	#[rustfmt::skip]
 	fn issue_token() -> Weight {
-		Weight::from_ref_time(428_000_000 as u64)
-			.saturating_add(T::DbWeight::get().reads(5 as u64))
-			.saturating_add(T::DbWeight::get().writes(5 as u64))
+		Weight::from_ref_time(428_000_000_u64)
+			.saturating_add(T::DbWeight::get().reads(5_u64))
+			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
 }
 
@@ -93,16 +93,16 @@ impl WeightInfo for () {
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn create_dao() -> Weight {
-		Weight::from_ref_time(182_000_000 as u64)
-			.saturating_add(RocksDbWeight::get().reads(1 as u64))
-			.saturating_add(RocksDbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(182_000_000_u64)
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn destroy_dao() -> Weight {
-		Weight::from_ref_time(314_000_000 as u64)
-			.saturating_add(RocksDbWeight::get().reads(1 as u64))
-			.saturating_add(RocksDbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(314_000_000_u64)
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	// Storage: DaoCore CurrentAssetId (r:1 w:1)
@@ -111,8 +111,8 @@ impl WeightInfo for () {
 	// Storage: Assets Metadata (r:1 w:1)
 	#[rustfmt::skip]
 	fn issue_token() -> Weight {
-		Weight::from_ref_time(428_000_000 as u64)
-			.saturating_add(RocksDbWeight::get().reads(5 as u64))
-			.saturating_add(RocksDbWeight::get().writes(5 as u64))
+		Weight::from_ref_time(428_000_000_u64)
+			.saturating_add(RocksDbWeight::get().reads(5_u64))
+			.saturating_add(RocksDbWeight::get().writes(5_u64))
 	}
 }
