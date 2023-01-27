@@ -80,6 +80,6 @@ fn it_creates_a_vote() {
 		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone()));
 
 		// test creating a vote
-		assert_ok!(DaoVotes::create_vote(origin.clone(), prop_id.clone(), true));
+		assert_ok!(DaoVotes::create_vote(origin, prop_id, true));
 	});
 }
