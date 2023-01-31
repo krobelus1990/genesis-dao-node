@@ -940,21 +940,21 @@ fn reserving_and_unreserving_should_work() {
 		assert_eq!(Assets::reserved(999, 1), 0);
 
 		// do reservation
-		assert_ok!(Assets::reserve(RuntimeOrigin::signed(1), 999, 40));
+		assert_ok!(Assets::do_reserve(999, 1, 40));
 
 		// check reservation worked
 		assert_eq!(Assets::balance(999, 1), 60);
 		assert_eq!(Assets::reserved(999, 1), 40);
 
 		// undo reservation
-		assert_ok!(Assets::unreserve(RuntimeOrigin::signed(1), 999, 10));
+		assert_ok!(Assets::do_unreserve(999, 1, 10));
 
 		// check undoing reservation worked
 		assert_eq!(Assets::balance(999, 1), 70);
 		assert_eq!(Assets::reserved(999, 1), 30);
 
 		// undo the maximum
-		assert_ok!(Assets::unreserve(RuntimeOrigin::signed(1), 999, 1500));
+		assert_ok!(Assets::do_unreserve(999, 1, 1500));
 
 		// check undoing reservation worked
 		assert_eq!(Assets::balance(999, 1), 100);
