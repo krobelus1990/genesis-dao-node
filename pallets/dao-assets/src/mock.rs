@@ -4,7 +4,7 @@ use super::*;
 use crate as pallet_dao_assets;
 
 use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, GenesisBuild},
 };
 use sp_core::H256;
@@ -81,57 +81,11 @@ impl Config for Test {
 	type MetadataDepositPerByte = ConstU64<1>;
 	type ApprovalDeposit = ConstU64<1>;
 	type StringLimit = ConstU32<50>;
-	type Freezer = TestFreezer;
 	type WeightInfo = ();
 	type Extra = ();
 	type RemoveItemsLimit = ConstU32<5>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
-}
-
-use std::collections::HashMap;
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum Hook {
-	Died(u32, u64),
-}
-parameter_types! {
-	static Frozen: HashMap<(u32, u64), u64> = Default::default();
-	static Hooks: Vec<Hook> = Default::default();
-}
-
-pub struct TestFreezer;
-impl FrozenBalance<u32, u64, u64> for TestFreezer {
-	fn frozen_balance(asset: u32, who: &u64) -> Option<u64> {
-		Frozen::get().get(&(asset, *who)).cloned()
-	}
-
-	fn died(asset: u32, who: &u64) {
-		Hooks::mutate(|v| v.push(Hook::Died(asset, *who)));
-
-		// Sanity check: dead accounts have no balance.
-		assert!(Assets::balance(asset, *who).is_zero());
-	}
-}
-
-pub(crate) fn set_frozen_balance(asset: u32, who: u64, amount: u64) {
-	Frozen::mutate(|v| {
-		v.insert((asset, who), amount);
-	});
-}
-
-pub(crate) fn clear_frozen_balance(asset: u32, who: u64) {
-	Frozen::mutate(|v| {
-		v.remove(&(asset, who));
-	});
-}
-
-pub(crate) fn hooks() -> Vec<Hook> {
-	Hooks::get()
-}
-
-pub(crate) fn take_hooks() -> Vec<Hook> {
-	Hooks::take()
 }
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
@@ -155,8 +109,6 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 	config.assimilate_storage(&mut storage).unwrap();
 
 	let mut ext: sp_io::TestExternalities = storage.into();
-	// Clear thread local vars for https://github.com/paritytech/substrate/issues/10479.
-	ext.execute_with(take_hooks);
 	ext.execute_with(|| System::set_block_number(1));
 	ext
 }

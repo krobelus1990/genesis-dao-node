@@ -138,10 +138,6 @@ benchmarks_instance_pallet! {
 
 	start_destroy {
 		let (asset_id, caller, caller_lookup) = create_default_minted_asset::<T, I>(true, 100u32.into());
-		Assets::<T, I>::freeze_asset(
-			SystemOrigin::Signed(caller.clone()).into(),
-			asset_id,
-		)?;
 	}:_(SystemOrigin::Signed(caller), asset_id)
 	verify {
 		assert_last_event::<T, I>(Event::DestructionStarted { asset_id: asset_id.into() }.into());
@@ -151,10 +147,6 @@ benchmarks_instance_pallet! {
 		let c in 0 .. T::RemoveItemsLimit::get();
 		let (asset_id, caller, _) = create_default_asset::<T, I>(true);
 		add_sufficients::<T, I>(caller.clone(), c);
-		Assets::<T, I>::freeze_asset(
-			SystemOrigin::Signed(caller.clone()).into(),
-			asset_id,
-		)?;
 		Assets::<T,I>::start_destroy(SystemOrigin::Signed(caller.clone()).into(), asset_id)?;
 	}:_(SystemOrigin::Signed(caller), asset_id)
 	verify {
@@ -169,10 +161,6 @@ benchmarks_instance_pallet! {
 		let a in 0 .. T::RemoveItemsLimit::get();
 		let (asset_id, caller, _) = create_default_minted_asset::<T, I>(true, 100u32.into());
 		add_approvals::<T, I>(caller.clone(), a);
-		Assets::<T, I>::freeze_asset(
-			SystemOrigin::Signed(caller.clone()).into(),
-			asset_id,
-		)?;
 		Assets::<T,I>::start_destroy(SystemOrigin::Signed(caller.clone()).into(), asset_id)?;
 	}:_(SystemOrigin::Signed(caller), asset_id)
 	verify {
@@ -185,10 +173,6 @@ benchmarks_instance_pallet! {
 
 	finish_destroy {
 		let (asset_id, caller, caller_lookup) = create_default_asset::<T, I>(true);
-		Assets::<T, I>::freeze_asset(
-			SystemOrigin::Signed(caller.clone()).into(),
-			asset_id,
-		)?;
 		Assets::<T,I>::start_destroy(SystemOrigin::Signed(caller.clone()).into(), asset_id)?;
 	}:_(SystemOrigin::Signed(caller), asset_id)
 	verify {
@@ -248,43 +232,6 @@ benchmarks_instance_pallet! {
 		);
 	}
 
-	freeze {
-		let (asset_id, caller, caller_lookup) = create_default_minted_asset::<T, I>(true, 100u32.into());
-	}: _(SystemOrigin::Signed(caller.clone()), asset_id, caller_lookup)
-	verify {
-		assert_last_event::<T, I>(Event::Frozen { asset_id: asset_id.into(), who: caller }.into());
-	}
-
-	thaw {
-		let (asset_id, caller, caller_lookup) = create_default_minted_asset::<T, I>(true, 100u32.into());
-		Assets::<T, I>::freeze(
-			SystemOrigin::Signed(caller.clone()).into(),
-			asset_id,
-			caller_lookup.clone(),
-		)?;
-	}: _(SystemOrigin::Signed(caller.clone()), asset_id, caller_lookup)
-	verify {
-		assert_last_event::<T, I>(Event::Thawed { asset_id: asset_id.into(), who: caller }.into());
-	}
-
-	freeze_asset {
-		let (asset_id, caller, caller_lookup) = create_default_minted_asset::<T, I>(true, 100u32.into());
-	}: _(SystemOrigin::Signed(caller.clone()), asset_id)
-	verify {
-		assert_last_event::<T, I>(Event::AssetFrozen { asset_id: asset_id.into() }.into());
-	}
-
-	thaw_asset {
-		let (asset_id, caller, caller_lookup) = create_default_minted_asset::<T, I>(true, 100u32.into());
-		Assets::<T, I>::freeze_asset(
-			SystemOrigin::Signed(caller.clone()).into(),
-			asset_id,
-		)?;
-	}: _(SystemOrigin::Signed(caller.clone()), asset_id)
-	verify {
-		assert_last_event::<T, I>(Event::AssetThawed { asset_id: asset_id.into() }.into());
-	}
-
 	transfer_ownership {
 		let (asset_id, caller, _) = create_default_asset::<T, I>(true);
 		let target: T::AccountId = account("target", 0, SEED);
@@ -298,14 +245,12 @@ benchmarks_instance_pallet! {
 		let (asset_id, caller, _) = create_default_asset::<T, I>(true);
 		let target0 = T::Lookup::unlookup(account("target", 0, SEED));
 		let target1 = T::Lookup::unlookup(account("target", 1, SEED));
-		let target2 = T::Lookup::unlookup(account("target", 2, SEED));
-	}: _(SystemOrigin::Signed(caller), asset_id, target0, target1, target2)
+	}: _(SystemOrigin::Signed(caller), asset_id, target0, target1)
 	verify {
 		assert_last_event::<T, I>(Event::TeamChanged {
 			asset_id: asset_id.into(),
 			issuer: account("target", 0, SEED),
 			admin: account("target", 1, SEED),
-			freezer: account("target", 2, SEED),
 		}.into());
 	}
 
@@ -380,11 +325,9 @@ benchmarks_instance_pallet! {
 			id: asset_id,
 			owner: caller_lookup.clone(),
 			issuer: caller_lookup.clone(),
-			admin: caller_lookup.clone(),
-			freezer: caller_lookup,
+			admin: caller_lookup,
 			min_balance: 100u32.into(),
 			is_sufficient: true,
-			is_frozen: false,
 		};
 	}: { call.dispatch_bypass_filter(origin)? }
 	verify {
