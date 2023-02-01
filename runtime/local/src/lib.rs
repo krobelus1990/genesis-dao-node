@@ -343,7 +343,7 @@ construct_runtime!(
 
 		DaoCore: pallet_dao_core,
 		Balances: pallet_balances,
-		DaoAssets: pallet_dao_assets,
+		Assets: pallet_dao_assets,
 	}
 );
 
