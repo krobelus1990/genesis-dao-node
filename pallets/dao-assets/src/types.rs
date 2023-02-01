@@ -18,8 +18,6 @@ pub(super) type AssetAccountOf<T, I> =
 pub(super) enum AssetStatus {
 	/// The asset is active and able to be used.
 	Live,
-	/// Whether the asset is frozen for non-admin transfers.
-	Frozen,
 	/// The asset is currently being destroyed, and all actions are no longer permitted on the
 	/// asset. Once set to `Destroying`, the asset can never transition back to a `Live` state.
 	Destroying,
@@ -27,14 +25,12 @@ pub(super) enum AssetStatus {
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub struct AssetDetails<Balance, AccountId, DepositBalance> {
-	/// Can change `owner`, `issuer`, `freezer` and `admin` accounts.
+	/// Can change `owner`, `issuer`, and `admin` accounts.
 	pub(super) owner: AccountId,
 	/// Can mint tokens.
 	pub(super) issuer: AccountId,
-	/// Can thaw tokens, force transfers and burn tokens from any account.
+	/// Can force transfers and burn tokens from any account.
 	pub(super) admin: AccountId,
-	/// Can freeze tokens.
-	pub(super) freezer: AccountId,
 	/// The total supply across all accounts.
 	pub(super) supply: Balance,
 	/// The balance deposited for this asset. This pays for the data stored here.
@@ -97,8 +93,6 @@ pub struct AssetAccount<Balance, DepositBalance, Extra> {
 	pub(super) balance: Balance,
 	/// Reserved balance.
 	pub(super) reserved: Balance,
-	/// Whether the account is frozen.
-	pub(super) is_frozen: bool,
 	/// The reason for the existence of the account.
 	pub(super) reason: ExistenceReason<DepositBalance>,
 	/// Additional "sidecar" data, in case some other pallet wants to use this storage item.
@@ -117,40 +111,6 @@ pub struct AssetMetadata<DepositBalance, BoundedString> {
 	pub(super) symbol: BoundedString,
 	/// The number of decimals this asset uses to represent one unit.
 	pub(super) decimals: u8,
-	/// Whether the asset metadata may be changed by a non Force origin.
-	pub(super) is_frozen: bool,
-}
-
-/// Trait for allowing a minimum balance on the account to be specified, beyond the
-/// `minimum_balance` of the asset. This is additive - the `minimum_balance` of the asset must be
-/// met *and then* anything here in addition.
-pub trait FrozenBalance<AssetId, AccountId, Balance> {
-	/// Return the frozen balance.
-	///
-	/// Generally, the balance of every account must be at least the sum of this (if `Some`) and
-	/// the asset's `minimum_balance` (the latter since there may be complications to destroying an
-	/// asset's account completely).
-	///
-	/// Under normal behaviour, the account balance should not go below the sum of this (if `Some`)
-	/// and the asset's minimum balance. However, the account balance may reasonably begin below
-	/// this sum (e.g. if less than the sum had ever been transferred into the account).
-	///
-	/// In special cases (privileged intervention) the account balance may also go below the sum.
-	///
-	/// If `None` is returned, then nothing special is enforced.
-	fn frozen_balance(asset: AssetId, who: &AccountId) -> Option<Balance>;
-
-	/// Called after an account has been removed.
-	///
-	/// NOTE: It is possible that the asset does no longer exist when this hook is called.
-	fn died(asset: AssetId, who: &AccountId);
-}
-
-impl<AssetId, AccountId, Balance> FrozenBalance<AssetId, AccountId, Balance> for () {
-	fn frozen_balance(_: AssetId, _: &AccountId) -> Option<Balance> {
-		None
-	}
-	fn died(_: AssetId, _: &AccountId) {}
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

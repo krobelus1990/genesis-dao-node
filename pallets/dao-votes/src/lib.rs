@@ -79,7 +79,7 @@ pub mod pallet {
 				prop_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			// want to reserve x amount of DAO Tokens for the creation of proposal
-			pallet_dao_assets::Pallet::<T>::reserve(origin, asset_id.into().into(), One::one())?;
+			pallet_dao_assets::Pallet::<T>::do_reserve(asset_id.into(), &sender, One::one())?;
 
 			// store the proposal
 			<Proposals<T>>::insert(

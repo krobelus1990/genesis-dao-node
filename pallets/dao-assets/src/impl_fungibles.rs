@@ -268,8 +268,8 @@ impl<T: Config<I>, I: 'static> fungibles::roles::Inspect<<T as SystemConfig>::Ac
 		Asset::<T, I>::get(asset).map(|x| x.admin)
 	}
 
-	fn freezer(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		Asset::<T, I>::get(asset).map(|x| x.freezer)
+	fn freezer(_asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
+		None
 	}
 }
 

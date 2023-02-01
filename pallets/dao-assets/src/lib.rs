@@ -34,7 +34,7 @@ use sp_runtime::{
 	},
 	ArithmeticError, TokenError,
 };
-use sp_std::{borrow::Borrow};
+use sp_std::borrow::Borrow;
 
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
@@ -83,7 +83,8 @@ pub mod pallet {
 	/// The module configuration trait.
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// The overarching event type.
-		type RuntimeEvent: From<Event<Self, I>>+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type RuntimeEvent: From<Event<Self, I>>
+			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The units in which we record balances.
 		type Balance: Member
@@ -157,10 +158,6 @@ pub mod pallet {
 		/// The maximum length of a name or symbol stored on-chain.
 		#[pallet::constant]
 		type StringLimit: Get<u32>;
-
-		/// A hook to allow a per-asset, per-account minimum balance to be enforced. This must be
-		/// respected in all permissionless operations.
-		type Freezer: FrozenBalance<Self::AssetId, Self::AccountId, Self::Balance>;
 
 		/// Additional data to be stored with an account's asset balance.
 		type Extra: Member + Parameter + Default + MaxEncodedLen;
@@ -250,7 +247,6 @@ pub mod pallet {
 						owner: owner.clone(),
 						issuer: owner.clone(),
 						admin: owner.clone(),
-						freezer: owner.clone(),
 						supply: Zero::zero(),
 						deposit: Zero::zero(),
 						min_balance: *min_balance,
@@ -276,7 +272,6 @@ pub mod pallet {
 					name: bounded_name,
 					symbol: bounded_symbol,
 					decimals: *decimals,
-					is_frozen: false,
 				};
 				Metadata::<T, I>::insert(id, metadata);
 			}
@@ -321,19 +316,9 @@ pub mod pallet {
 			asset_id: T::AssetId,
 			issuer: T::AccountId,
 			admin: T::AccountId,
-			freezer: T::AccountId,
 		},
 		/// The owner changed.
 		OwnerChanged { asset_id: T::AssetId, owner: T::AccountId },
-		/// Some account `who` was frozen.
-		Frozen { asset_id: T::AssetId, who: T::AccountId },
-		/// Some account `who` was thawed.
-		Thawed { asset_id: T::AssetId, who: T::AccountId },
-		/// Some asset `asset_id` was frozen.
-		AssetFrozen { asset_id: T::AssetId },
-		/// Some asset `asset_id` was thawed.
-		AssetThawed { asset_id: T::AssetId },
-		/// Accounts were destroyed for given asset.
 		AccountsDestroyed { asset_id: T::AssetId, accounts_destroyed: u32, accounts_remaining: u32 },
 		/// Approvals were destroyed for given asset.
 		ApprovalsDestroyed {
@@ -353,7 +338,6 @@ pub mod pallet {
 			name: Vec<u8>,
 			symbol: Vec<u8>,
 			decimals: u8,
-			is_frozen: bool,
 		},
 		/// Metadata has been cleared for an asset.
 		MetadataCleared { asset_id: T::AssetId },
@@ -389,8 +373,6 @@ pub mod pallet {
 		NoPermission,
 		/// The given asset ID is unknown.
 		Unknown,
-		/// The origin account is frozen.
-		Frozen,
 		/// The asset ID is already taken.
 		InUse,
 		/// Invalid witness data given.
@@ -420,8 +402,6 @@ pub mod pallet {
 		AssetNotLive,
 		/// The asset status is not the expected status.
 		IncorrectStatus,
-		/// The asset should be frozen before the given operation.
-		NotFrozen,
 	}
 
 	#[pallet::call]
@@ -435,8 +415,6 @@ pub mod pallet {
 		///
 		/// - `id`: The identifier of the asset to be destroyed. This must identify an existing
 		///   asset.
-		///
-		/// The asset class must be frozen before calling `start_destroy`.
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::start_destroy())]
 		pub fn start_destroy(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
@@ -514,58 +492,6 @@ pub mod pallet {
 			Self::do_finish_destroy(id)
 		}
 
-		/// Reserve some assets for an account.
-		///
-		/// Origin must be Signed.
-		///
-		/// - `id`: The identifier of the asset to have some amount reserved.
-		/// - `amount`: The amount by which the free balance of assets should be reduced and
-		/// the reserved balance increased. The amount actually transferred may be slightly greater in
-		/// the case that the transfer would otherwise take the sender balance above zero but below
-		/// the minimum balance. Must be greater than zero.
-		///
-		/// Emits `Reserved` with the actual amount reserved. If this takes the source balance
-		/// to below the minimum for the asset, then the amount transferred is increased to take it
-		/// to zero.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(6)]
-		#[pallet::weight(0)]
-		pub fn reserve(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			#[pallet::compact] amount: T::Balance,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-			// FIXME: do we want to emit an event?
-			Self::do_reserve(id, &origin, amount).map(|_| ())
-		}
-
-		/// Unreserve some assets for an account.
-		///
-		/// Origin must be Signed.
-		///
-		/// - `id`: The identifier of the asset to have some amount reserved.
-		/// - `amount`: The amount by which the free balance of assets should be increased and
-		/// the reserved balance reduced. Must be greater than zero.
-		///
-		/// Emits `Unreserved` with the actual amount reserved.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(7)]
-		#[pallet::weight(0)]
-		pub fn unreserve(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			#[pallet::compact] amount: T::Balance,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-			// FIXME: do we want to emit an event?
-			Self::do_unreserve(id, &origin, amount).map(|_| ())
-		}
-
 		/// Move some assets from the sender account to another.
 		///
 		/// Origin must be Signed.
@@ -634,134 +560,6 @@ pub mod pallet {
 			Self::do_transfer(id, &source, &dest, amount, None, f).map(|_| ())
 		}
 
-		/// Disallow further unprivileged transfers from an account.
-		///
-		/// Origin must be Signed and the sender should be the Freezer of the asset `id`.
-		///
-		/// - `id`: The identifier of the asset to be frozen.
-		/// - `who`: The account to be frozen.
-		///
-		/// Emits `Frozen`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(11)]
-		#[pallet::weight(T::WeightInfo::freeze())]
-		pub fn freeze(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			who: AccountIdLookupOf<T>,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-
-			let d = Asset::<T, I>::get(id).ok_or(Error::<T, I>::Unknown)?;
-			ensure!(
-				d.status == AssetStatus::Live || d.status == AssetStatus::Frozen,
-				Error::<T, I>::AssetNotLive
-			);
-			ensure!(origin == d.freezer, Error::<T, I>::NoPermission);
-			let who = T::Lookup::lookup(who)?;
-
-			Account::<T, I>::try_mutate(id, &who, |maybe_account| -> DispatchResult {
-				maybe_account.as_mut().ok_or(Error::<T, I>::NoAccount)?.is_frozen = true;
-				Ok(())
-			})?;
-
-			Self::deposit_event(Event::<T, I>::Frozen { asset_id: id, who });
-			Ok(())
-		}
-
-		/// Allow unprivileged transfers from an account again.
-		///
-		/// Origin must be Signed and the sender should be the Admin of the asset `id`.
-		///
-		/// - `id`: The identifier of the asset to be frozen.
-		/// - `who`: The account to be unfrozen.
-		///
-		/// Emits `Thawed`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(12)]
-		#[pallet::weight(T::WeightInfo::thaw())]
-		pub fn thaw(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			who: AccountIdLookupOf<T>,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-
-			let details = Asset::<T, I>::get(id).ok_or(Error::<T, I>::Unknown)?;
-			ensure!(
-				details.status == AssetStatus::Live || details.status == AssetStatus::Frozen,
-				Error::<T, I>::AssetNotLive
-			);
-			ensure!(origin == details.admin, Error::<T, I>::NoPermission);
-			let who = T::Lookup::lookup(who)?;
-
-			Account::<T, I>::try_mutate(id, &who, |maybe_account| -> DispatchResult {
-				maybe_account.as_mut().ok_or(Error::<T, I>::NoAccount)?.is_frozen = false;
-				Ok(())
-			})?;
-
-			Self::deposit_event(Event::<T, I>::Thawed { asset_id: id, who });
-			Ok(())
-		}
-
-		/// Disallow further unprivileged transfers for the asset class.
-		///
-		/// Origin must be Signed and the sender should be the Freezer of the asset `id`.
-		///
-		/// - `id`: The identifier of the asset to be frozen.
-		///
-		/// Emits `Frozen`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(13)]
-		#[pallet::weight(T::WeightInfo::freeze_asset())]
-		pub fn freeze_asset(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-
-			Asset::<T, I>::try_mutate(id, |maybe_details| {
-				let d = maybe_details.as_mut().ok_or(Error::<T, I>::Unknown)?;
-				ensure!(d.status == AssetStatus::Live, Error::<T, I>::AssetNotLive);
-				ensure!(origin == d.freezer, Error::<T, I>::NoPermission);
-
-				d.status = AssetStatus::Frozen;
-
-				Self::deposit_event(Event::<T, I>::AssetFrozen { asset_id: id });
-				Ok(())
-			})
-		}
-
-		/// Allow unprivileged transfers for the asset again.
-		///
-		/// Origin must be Signed and the sender should be the Admin of the asset `id`.
-		///
-		/// - `id`: The identifier of the asset to be thawed.
-		///
-		/// Emits `Thawed`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(14)]
-		#[pallet::weight(T::WeightInfo::thaw_asset())]
-		pub fn thaw_asset(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-
-			Asset::<T, I>::try_mutate(id, |maybe_details| {
-				let d = maybe_details.as_mut().ok_or(Error::<T, I>::Unknown)?;
-				ensure!(origin == d.admin, Error::<T, I>::NoPermission);
-				ensure!(d.status == AssetStatus::Frozen, Error::<T, I>::NotFrozen);
-
-				d.status = AssetStatus::Live;
-
-				Self::deposit_event(Event::<T, I>::AssetThawed { asset_id: id });
-				Ok(())
-			})
-		}
-
 		/// Change the Owner of an asset.
 		///
 		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
@@ -804,14 +602,13 @@ pub mod pallet {
 			})
 		}
 
-		/// Change the Issuer, Admin and Freezer of an asset.
+		/// Change the Issuer and Admin of an asset.
 		///
 		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
 		///
-		/// - `id`: The identifier of the asset to be frozen.
+		/// - `id`: The asset identifier
 		/// - `issuer`: The new Issuer of this asset.
 		/// - `admin`: The new Admin of this asset.
-		/// - `freezer`: The new Freezer of this asset.
 		///
 		/// Emits `TeamChanged`.
 		///
@@ -823,12 +620,10 @@ pub mod pallet {
 			id: T::AssetIdParameter,
 			issuer: AccountIdLookupOf<T>,
 			admin: AccountIdLookupOf<T>,
-			freezer: AccountIdLookupOf<T>,
 		) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
 			let issuer = T::Lookup::lookup(issuer)?;
 			let admin = T::Lookup::lookup(admin)?;
-			let freezer = T::Lookup::lookup(freezer)?;
 			let id: T::AssetId = id.into();
 
 			Asset::<T, I>::try_mutate(id, |maybe_details| {
@@ -838,9 +633,8 @@ pub mod pallet {
 
 				details.issuer = issuer.clone();
 				details.admin = admin.clone();
-				details.freezer = freezer.clone();
 
-				Self::deposit_event(Event::TeamChanged { asset_id: id, issuer, admin, freezer });
+				Self::deposit_event(Event::TeamChanged { asset_id: id, issuer, admin });
 				Ok(())
 			})
 		}
@@ -903,7 +697,6 @@ pub mod pallet {
 				Ok(())
 			})
 		}
-
 
 		/// Approve an amount of asset for transfer by a delegated third-party account.
 		///
