@@ -87,7 +87,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		DaoCreated { owner: T::AccountId, dao_id: BoundedVec<u8, T::MaxLength>},
 		DaoDestroyed { dao_id: BoundedVec<u8, T::MaxLength> },
-        DaoTokenIssued { dao_id: BoundedVec<u8, T::MaxLength>, supply: <T as pallet_dao_assets::Config>::Balance },
+        DaoTokenIssued { dao_id: BoundedVec<u8, T::MaxLength>, supply: <T as pallet_dao_assets::Config>::Balance, asset_id: <T as pallet_dao_assets::Config>::AssetId },
 	}
 
 	#[pallet::error]
@@ -212,7 +212,7 @@ pub mod pallet {
                 <T as Config>::TokenUnits::get()
             )?;
 
-            Self::deposit_event(Event::DaoTokenIssued { dao_id: dao.id.clone(), supply });
+            Self::deposit_event(Event::DaoTokenIssued { dao_id: dao.id.clone(), supply, asset_id: <CurrentAssetId<T>>::get().into() });
 			// ... and link the dao to the asset
             <Daos<T>>::try_mutate(dao.id, |maybe_dao| {
                 let d = maybe_dao.as_mut().ok_or(Error::<T>::DaoDoesNotExist)?;
