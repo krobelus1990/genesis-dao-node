@@ -5,10 +5,12 @@ use node_runtime::{
 };
 use subxt::{tx::Signer, utils::AccountId32, OnlineClient, PolkadotConfig};
 
+// when this file becomes out of sync, regenerate it like so
 // 1) cargo install subxt-cli
-// 2) ~/.cargo/bin/subxt metadata -f bytes > metadata.scale
+// 2) start a local node
+// 3) ~/.cargo/bin/subxt metadata -f bytes > metadata.scale
 // this step is optional
-// 3) ~/.cargo/bin/subxt codegen > api.rs
+// 4) ~/.cargo/bin/subxt codegen | rustfmt > api.rs
 #[subxt::subxt(runtime_metadata_path = "metadata.scale")]
 pub mod node_runtime {}
 
