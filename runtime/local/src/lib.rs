@@ -280,6 +280,13 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 }
 
+impl pallet_utility::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type PalletsOrigin = OriginCaller;
+	type WeightInfo = ();
+}
+
 parameter_types! {
 	pub const AssetDeposit: Balance = 10 * UNITS; // 10 UNITS deposit to create fungible asset class
 	pub const AssetAccountDeposit: Balance = deposit(1, 16);
@@ -339,6 +346,7 @@ construct_runtime!(
 		Grandpa: pallet_grandpa,
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
+		Utility: pallet_utility,
 
 		DaoCore: pallet_dao_core,
 		Balances: pallet_balances,
