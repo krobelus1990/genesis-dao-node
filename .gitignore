@@ -17,3 +17,6 @@
 
 .idea
 .vscode
+
+# emacs temp files
+*~
