@@ -1,9 +1,6 @@
 use crate::{mock::*, Error};
-use frame_support::{
-    assert_ok, assert_noop
-};
+use frame_support::{assert_noop, assert_ok};
 use pallet_balances::Error as BalancesError;
-
 
 #[test]
 fn it_creates_a_dao() {
@@ -55,7 +52,11 @@ fn it_destroys_a_dao() {
 			Error::<Test>::DaoDoesNotExist
 		);
 
-		assert_ok!(DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec(), b"Genesis DAO".to_vec()));
+		assert_ok!(DaoCore::create_dao(
+			RuntimeOrigin::signed(1),
+			b"GDAO".to_vec(),
+			b"Genesis DAO".to_vec()
+		));
 
 		assert_noop!(
 			DaoCore::destroy_dao(RuntimeOrigin::signed(2), b"GDAO".to_vec()),
@@ -73,29 +74,37 @@ fn it_destroys_a_dao() {
 
 #[test]
 fn issues_a_token() {
-    new_test_ext().execute_with(|| {
-        assert_ok!(DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec(), b"Genesis DAO".to_vec()));
-        assert_ok!(DaoCore::issue_token(RuntimeOrigin::signed(1), b"GDAO".to_vec(), 1000));
+	new_test_ext().execute_with(|| {
+		assert_ok!(DaoCore::create_dao(
+			RuntimeOrigin::signed(1),
+			b"GDAO".to_vec(),
+			b"Genesis DAO".to_vec()
+		));
+		assert_ok!(DaoCore::issue_token(RuntimeOrigin::signed(1), b"GDAO".to_vec(), 1000));
 
-        let dao = DaoCore::load_dao(b"GDAO".to_vec()).unwrap();
-        let asset_id = dao.asset_id.unwrap();
+		let dao = DaoCore::load_dao(b"GDAO".to_vec()).unwrap();
+		let asset_id = dao.asset_id.unwrap();
 
-        assert_eq!(asset_id, 1);
+		assert_eq!(asset_id, 1);
 
-        use frame_support::traits::tokens::fungibles::metadata::Inspect;
-        assert_eq!(Assets::name(asset_id), b"Genesis DAO".to_vec());
-        assert_eq!(Assets::symbol(asset_id), b"GDAO".to_vec());
-        assert_eq!(Assets::decimals(asset_id), 9);
+		use frame_support::traits::tokens::fungibles::metadata::Inspect;
+		assert_eq!(Assets::name(asset_id), b"Genesis DAO".to_vec());
+		assert_eq!(Assets::symbol(asset_id), b"GDAO".to_vec());
+		assert_eq!(Assets::decimals(asset_id), 9);
 
 		// payout
-        assert_eq!(Assets::balance(asset_id, &dao.owner), 1000);
+		assert_eq!(Assets::balance(asset_id, &dao.owner), 1000);
 
-        // increment
-        assert_ok!(DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO2".to_vec(), b"Genesis DAO 2".to_vec()));
-        assert_ok!(DaoCore::issue_token(RuntimeOrigin::signed(1), b"GDAO2".to_vec(), 1000));
+		// increment
+		assert_ok!(DaoCore::create_dao(
+			RuntimeOrigin::signed(1),
+			b"GDAO2".to_vec(),
+			b"Genesis DAO 2".to_vec()
+		));
+		assert_ok!(DaoCore::issue_token(RuntimeOrigin::signed(1), b"GDAO2".to_vec(), 1000));
 
-        let dao2 = DaoCore::load_dao(b"GDAO2".to_vec()).unwrap();
-        let asset_id2 = dao2.asset_id.unwrap();
-        assert_eq!(asset_id2, 2);
+		let dao2 = DaoCore::load_dao(b"GDAO2".to_vec()).unwrap();
+		let asset_id2 = dao2.asset_id.unwrap();
+		assert_eq!(asset_id2, 2);
 	});
 }
