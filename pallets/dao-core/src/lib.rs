@@ -180,8 +180,15 @@ pub mod pallet {
 			let dao = Self::load_dao(dao_id)?;
 			ensure!(dao.owner == sender, Error::<T>::DaoSignerNotOwner);
 
-			<T as Config>::Currency::unreserve(&sender, <T as Config>::DaoDeposit::get());
+			if let Some(asset_id) = dao.asset_id {
+				if let Some(asset) = pallet_dao_assets::Asset::<T>::get(asset_id.into()) {
+					if pallet_dao_assets::AssetStatus::Destroyed != asset.status {
+						Err(Error::<T>::DaoTokenAlreadyIssued)?;
+					}
+				}
+			}
 
+			<T as Config>::Currency::unreserve(&sender, <T as Config>::DaoDeposit::get());
 			Self::deposit_event(Event::DaoDestroyed { dao_id: dao.id.clone() });
 			<Daos<T>>::remove(&dao.id);
 			Ok(())

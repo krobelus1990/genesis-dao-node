@@ -7,22 +7,22 @@ fn it_creates_a_dao() {
 	new_test_ext().execute_with(|| {
 
 		assert_noop!(
-				DaoCore::create_dao(RuntimeOrigin::signed(1), b"XX".to_vec(), b"Genesis DAO".to_vec()),
+			DaoCore::create_dao(RuntimeOrigin::signed(1), b"XX".to_vec(), b"Genesis DAO".to_vec()),
 			Error::<Test>::DaoIdInvalidLengthTooShort
 		);
 
 		assert_noop!(
-				DaoCore::create_dao(RuntimeOrigin::signed(1), b"XKETGUNIQHQKYYQ7JRQLC7SH02LY7WI27DXOZQURA0M4Z2MRI11L5UZ0DMVRDREQ9TFQI530UB3Z7ZOMMZ10HXAA9TKBMBC1ETFCXHP6HI9G0UXX8SAIYQ0JZI1R1CH9CU7FZHDN50SB3DWMQVD0DAG1BPD52COUUS8JBQSMYOKJDDXU5LMXHELVG5DNZFXKDWSI8XFY605ZLZZAV34OBVUL5770GKF5DS96E0UIPC80IW65E4F7VILBURIIO87CP".to_vec(), b"Genesis DAO".to_vec()),
+			DaoCore::create_dao(RuntimeOrigin::signed(1), b"XKETGUNIQHQKYYQ7JRQLC7SH02LY7WI27DXOZQURA0M4Z2MRI11L5UZ0DMVRDREQ9TFQI530UB3Z7ZOMMZ10HXAA9TKBMBC1ETFCXHP6HI9G0UXX8SAIYQ0JZI1R1CH9CU7FZHDN50SB3DWMQVD0DAG1BPD52COUUS8JBQSMYOKJDDXU5LMXHELVG5DNZFXKDWSI8XFY605ZLZZAV34OBVUL5770GKF5DS96E0UIPC80IW65E4F7VILBURIIO87CP".to_vec(), b"Genesis DAO".to_vec()),
 			Error::<Test>::DaoIdInvalidLengthTooLong
 		);
 
 		assert_noop!(
-				DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec(), b"GD".to_vec()),
+			DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec(), b"GD".to_vec()),
 			Error::<Test>::DaoNameInvalidLengthTooShort
 		);
 
 		assert_noop!(
-				DaoCore::create_dao(RuntimeOrigin::signed(1),  b"GDAO".to_vec(), b"XKETGUNIQHQKYYQ7JRQLC7SH02LY7WI27DXOZQURA0M4Z2MRI11L5UZ0DMVRDREQ9TFQI530UB3Z7ZOMMZ10HXAA9TKBMBC1ETFCXHP6HI9G0UXX8SAIYQ0JZI1R1CH9CU7FZHDN50SB3DWMQVD0DAG1BPD52COUUS8JBQSMYOKJDDXU5LMXHELVG5DNZFXKDWSI8XFY605ZLZZAV34OBVUL5770GKF5DS96E0UIPC80IW65E4F7VILBURIIO87CP".to_vec()),
+			DaoCore::create_dao(RuntimeOrigin::signed(1),  b"GDAO".to_vec(), b"XKETGUNIQHQKYYQ7JRQLC7SH02LY7WI27DXOZQURA0M4Z2MRI11L5UZ0DMVRDREQ9TFQI530UB3Z7ZOMMZ10HXAA9TKBMBC1ETFCXHP6HI9G0UXX8SAIYQ0JZI1R1CH9CU7FZHDN50SB3DWMQVD0DAG1BPD52COUUS8JBQSMYOKJDDXU5LMXHELVG5DNZFXKDWSI8XFY605ZLZZAV34OBVUL5770GKF5DS96E0UIPC80IW65E4F7VILBURIIO87CP".to_vec()),
 			Error::<Test>::DaoNameInvalidLengthTooLong
 		);
 
@@ -62,6 +62,19 @@ fn it_destroys_a_dao() {
 			DaoCore::destroy_dao(RuntimeOrigin::signed(2), b"GDAO".to_vec()),
 			Error::<Test>::DaoSignerNotOwner
 		);
+
+		assert_ok!(DaoCore::issue_token(RuntimeOrigin::signed(1), b"GDAO".to_vec(), 1000));
+
+		assert_noop!(
+			DaoCore::destroy_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec()),
+			Error::<Test>::DaoTokenAlreadyIssued
+		);
+
+		let dao = DaoCore::load_dao(b"GDAO".to_vec()).unwrap();
+		let asset_id = dao.asset_id.unwrap();
+		assert_ok!(Assets::start_destroy(RuntimeOrigin::signed(1), asset_id));
+		assert_ok!(Assets::destroy_accounts(RuntimeOrigin::signed(1), asset_id));
+		assert_ok!(Assets::finish_destroy(RuntimeOrigin::signed(1), asset_id));
 
 		assert_ok!(DaoCore::destroy_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec()));
 
