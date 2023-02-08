@@ -3,6 +3,31 @@ use frame_support::{assert_noop, assert_ok};
 use pallet_balances::Error as BalancesError;
 
 #[test]
+fn dao_id_valid_chars() {
+	new_test_ext().execute_with(|| {
+		for b in 0u8..255u8 {
+			let mut id = b"GDAO".to_vec();
+			id.push(b);
+			match b {
+				b'A'..=b'Z' | b'0'..=b'9' => {
+					assert_ok!(DaoCore::create_dao(
+						RuntimeOrigin::signed(1),
+						id,
+						b"Genesis DAO".to_vec()
+					));
+				},
+				_ => {
+					assert_noop!(
+						DaoCore::create_dao(RuntimeOrigin::signed(1), id, b"Genesis DAO".to_vec()),
+						Error::<Test>::DaoIdInvalidChar
+					);
+				},
+			}
+		}
+	})
+}
+
+#[test]
 fn it_creates_a_dao() {
 	new_test_ext().execute_with(|| {
 
@@ -26,10 +51,10 @@ fn it_creates_a_dao() {
 			Error::<Test>::DaoNameInvalidLengthTooLong
 		);
 
-		assert_eq!(Balances::free_balance(1), 100);
+		assert_eq!(Balances::free_balance(1), 1000);
 		assert_ok!(DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec(), b"Genesis DAO".to_vec()));
 		// reserve taken
-		assert_eq!(Balances::free_balance(1), 90);
+		assert_eq!(Balances::free_balance(1), 990);
 
 		assert_noop!(
 			DaoCore::create_dao(RuntimeOrigin::signed(1), b"GDAO".to_vec(), b"Genesis DAO".to_vec()),

@@ -12,9 +12,9 @@ use scale_info::TypeInfo;
 /// - `asset_id`: The identifier of the asset of the issued token (optional, as token maybe issued later)
 ///
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct Dao<AccountId, BoundedString, AssetId> {
-	pub id: BoundedString,
+pub struct Dao<DaoId, AccountId, DaoName, AssetId> {
+	pub id: DaoId,
 	pub owner: AccountId,
-	pub name: BoundedString,
+	pub name: DaoName,
 	pub asset_id: Option<AssetId>
 }

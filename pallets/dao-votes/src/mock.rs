@@ -103,7 +103,8 @@ impl pallet_dao_assets::Config for Test {
 impl pallet_dao_core::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MinLength = ConstU32<3>;
-	type MaxLength = ConstU32<16>;
+	type MaxLengthId = ConstU32<8>;
+	type MaxLengthName = ConstU32<16>;
 	type Currency = Balances;
 	type DaoDeposit = ConstU128<10>;
 	type TokenUnits = ConstU8<9>;
