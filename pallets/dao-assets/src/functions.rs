@@ -761,7 +761,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	/// On success, the `Event::Destroyed` event is emitted.
 	pub(super) fn do_finish_destroy(id: T::AssetId) -> DispatchResult {
 		Asset::<T, I>::try_mutate_exists(id, |maybe_details| -> Result<(), DispatchError> {
-			let details = maybe_details.take().ok_or(Error::<T, I>::Unknown)?;
+			let mut details = maybe_details.as_mut().ok_or(Error::<T, I>::Unknown)?;
 			ensure!(details.status == AssetStatus::Destroying, Error::<T, I>::IncorrectStatus);
 			ensure!(details.accounts == 0, Error::<T, I>::InUse);
 			ensure!(details.approvals == 0, Error::<T, I>::InUse);
@@ -771,6 +771,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				&details.owner,
 				details.deposit.saturating_add(metadata.deposit),
 			);
+			details.status = AssetStatus::Destroyed;
 			Self::deposit_event(Event::Destroyed { asset_id: id });
 
 			Ok(())

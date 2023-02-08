@@ -15,12 +15,14 @@ pub(super) type AssetAccountOf<T, I> =
 /// AssetStatus holds the current state of the asset. It could either be Live and available for use,
 /// or in a Destroying state.
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub(super) enum AssetStatus {
+pub enum AssetStatus {
 	/// The asset is active and able to be used.
 	Live,
 	/// The asset is currently being destroyed, and all actions are no longer permitted on the
 	/// asset. Once set to `Destroying`, the asset can never transition back to a `Live` state.
 	Destroying,
+	/// The asset has been destroyed
+	Destroyed,
 }
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
@@ -47,7 +49,7 @@ pub struct AssetDetails<Balance, AccountId, DepositBalance> {
 	/// The total number of approvals.
 	pub(super) approvals: u32,
 	/// The status of the asset
-	pub(super) status: AssetStatus,
+	pub status: AssetStatus,
 }
 
 /// Data concerning an approval.
