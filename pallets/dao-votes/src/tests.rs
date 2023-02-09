@@ -6,9 +6,9 @@ use pallet_dao_core::Error as DaoError;
 #[test]
 fn it_creates_a_proposal() {
 	new_test_ext().execute_with(|| {
-		let dao_id = b"TEST".to_vec();
+		let dao_id = b"DAO".to_vec();
 		let dao_name = b"TEST DAO".to_vec();
-		let prop_id = b"TEST_proposal".to_vec();
+		let prop_id = b"PROP".to_vec();
 		let origin = RuntimeOrigin::signed(1);
 
 		// cannot create a proposal without a DAO
@@ -61,9 +61,9 @@ fn it_creates_a_proposal() {
 #[test]
 fn it_creates_a_vote() {
 	new_test_ext().execute_with(|| {
-		let dao_id = b"DAO1".to_vec();
+		let dao_id = b"DAO".to_vec();
 		let dao_name = b"TEST DAO".to_vec();
-		let prop_id = b"proposal1".to_vec();
+		let prop_id = b"PROP".to_vec();
 		let origin = RuntimeOrigin::signed(1);
 
 		// cannot create a vote without a proposal

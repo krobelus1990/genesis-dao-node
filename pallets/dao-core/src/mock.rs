@@ -104,7 +104,8 @@ impl pallet_dao_assets::Config for Test {
 impl pallet_dao_core::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MinLength = ConstU32<3>;
-	type MaxLength = ConstU32<16>;
+	type MaxLengthId = ConstU32<8>;
+	type MaxLengthName = ConstU32<16>;
 	type Currency = Balances;
 	type DaoDeposit = ConstU128<10>;
     type TokenUnits = ConstU8<9>;
@@ -118,7 +119,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
-			(1, 100),
+			(1, 1000),
 		],
 	}
 	.assimilate_storage(&mut t)

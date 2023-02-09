@@ -30,11 +30,9 @@ pub use frame_support::{
 type DepositBalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type AssetIdOf<T> = <T as Config>::AssetId;
-type DaoOf<T> = Dao<
-	<T as frame_system::Config>::AccountId,
-	BoundedVec<u8, <T as Config>::MaxLength>,
-	AssetIdOf<T>,
->;
+pub type DaoIdOf<T> = BoundedVec<u8, <T as Config>::MaxLengthId>;
+type DaoNameOf<T> = BoundedVec<u8, <T as Config>::MaxLengthName>;
+type DaoOf<T> = Dao<DaoIdOf<T>, <T as frame_system::Config>::AccountId, DaoNameOf<T>, AssetIdOf<T>>;
 
 pub mod weights;
 use weights::WeightInfo;
@@ -76,7 +74,10 @@ pub mod pallet {
 		type MinLength: Get<u32>;
 
 		#[pallet::constant]
-		type MaxLength: Get<u32>;
+		type MaxLengthId: Get<u32>;
+
+		#[pallet::constant]
+		type MaxLengthName: Get<u32>;
 
 		#[pallet::constant]
 		type TokenUnits: Get<u8>;
@@ -87,13 +88,13 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		DaoCreated {
 			owner: T::AccountId,
-			dao_id: BoundedVec<u8, T::MaxLength>,
+			dao_id: DaoIdOf<T>,
 		},
 		DaoDestroyed {
-			dao_id: BoundedVec<u8, T::MaxLength>,
+			dao_id: DaoIdOf<T>,
 		},
 		DaoTokenIssued {
-			dao_id: BoundedVec<u8, T::MaxLength>,
+			dao_id: DaoIdOf<T>,
 			supply: <T as pallet_dao_assets::Config>::Balance,
 			asset_id: <T as pallet_dao_assets::Config>::AssetId,
 		},
@@ -103,6 +104,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		DaoIdInvalidLengthTooShort,
 		DaoIdInvalidLengthTooLong,
+		DaoIdInvalidChar,
 		DaoNameInvalidLengthTooShort,
 		DaoNameInvalidLengthTooLong,
 		DaoAlreadyExists,
@@ -114,8 +116,7 @@ pub mod pallet {
 	/// Key-Value Store of all _DAOs_, with the key being the `dao_id`.
 	#[pallet::storage]
 	#[pallet::getter(fn get_dao)]
-	pub(super) type Daos<T: Config> =
-		StorageMap<_, Blake2_128Concat, BoundedVec<u8, T::MaxLength>, DaoOf<T>>;
+	pub(super) type Daos<T: Config> = StorageMap<_, Blake2_128Concat, DaoIdOf<T>, DaoOf<T>>;
 
 	/// Internal incrementor of all assets issued by this module.
 	/// The first asset starts with _1_ (sic!, not 0) and then the id is assigned by order of
@@ -141,31 +142,29 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let bounded_dao_id: BoundedVec<_, _> =
+			let id: BoundedVec<_, _> =
 				dao_id.try_into().map_err(|_| Error::<T>::DaoIdInvalidLengthTooLong)?;
 			ensure!(
-				bounded_dao_id.len() >= T::MinLength::get() as usize,
+				id.len() >= T::MinLength::get() as usize,
 				Error::<T>::DaoIdInvalidLengthTooShort
 			);
-			ensure!(!<Daos<T>>::contains_key(&bounded_dao_id), Error::<T>::DaoAlreadyExists);
+			ensure!(
+				id.iter().all(|b| (b'A'..=b'Z').contains(b) || (b'0'..=b'9').contains(b)),
+				Error::<T>::DaoIdInvalidChar
+			);
+			ensure!(!<Daos<T>>::contains_key(&id), Error::<T>::DaoAlreadyExists);
 
-			let bounded_name: BoundedVec<_, _> =
+			let name: BoundedVec<_, _> =
 				dao_name.try_into().map_err(|_| Error::<T>::DaoNameInvalidLengthTooLong)?;
 			ensure!(
-				bounded_name.len() >= T::MinLength::get() as usize,
+				name.len() >= T::MinLength::get() as usize,
 				Error::<T>::DaoNameInvalidLengthTooShort
 			);
 
 			<T as Config>::Currency::reserve(&sender, <T as Config>::DaoDeposit::get())?;
 
-			Self::deposit_event(Event::DaoCreated {
-				owner: sender.clone(),
-				dao_id: bounded_dao_id.clone(),
-			});
-			<Daos<T>>::insert(
-				bounded_dao_id.clone(),
-				Dao { id: bounded_dao_id, name: bounded_name, owner: sender, asset_id: None },
-			);
+			Self::deposit_event(Event::DaoCreated { owner: sender.clone(), dao_id: id.clone() });
+			<Daos<T>>::insert(id.clone(), Dao { id, name, owner: sender, asset_id: None });
 			Ok(())
 		}
 

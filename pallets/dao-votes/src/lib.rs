@@ -16,10 +16,8 @@ mod tests;
 mod types;
 pub use types::{Proposal, Vote};
 
-type DaoId<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLength>;
-type ProposalId<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLength>;
-
-type ProposalOf<T> = Proposal<ProposalId<T>, DaoId<T>, <T as frame_system::Config>::AccountId>;
+type ProposalIdOf<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLengthId>;
+type ProposalOf<T> = Proposal<ProposalIdOf<T>, pallet_dao_core::DaoIdOf<T>, <T as frame_system::Config>::AccountId>;
 type VoteOf<T> = Vote<<T as frame_system::Config>::AccountId>;
 
 #[frame_support::pallet]
@@ -31,10 +29,10 @@ pub mod pallet {
 
 	#[pallet::storage]
 	pub(super) type Proposals<T: Config> =
-		StorageMap<_, Twox64Concat, ProposalId<T>, ProposalOf<T>>;
+		StorageMap<_, Twox64Concat, ProposalIdOf<T>, ProposalOf<T>>;
 
 	#[pallet::storage]
-	pub(super) type Votes<T: Config> = StorageMap<_, Twox64Concat, ProposalId<T>, VoteOf<T>>;
+	pub(super) type Votes<T: Config> = StorageMap<_, Twox64Concat, ProposalIdOf<T>, VoteOf<T>>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
