@@ -21,5 +21,5 @@ pub struct Dao<DaoId, AccountId, DaoName, AssetId, Metadata> {
 	pub name: DaoName,
 	pub asset_id: Option<AssetId>,
 	pub meta: Metadata,
-	pub meta_hash: BoundedVec<u8, ConstU32<256>>,
+	pub meta_hash: BoundedVec<u8, ConstU32<64>>,
 }

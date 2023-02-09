@@ -108,6 +108,9 @@ pub mod pallet {
 			supply: <T as pallet_dao_assets::Config>::Balance,
 			asset_id: <T as pallet_dao_assets::Config>::AssetId,
 		},
+		DaoMetadataSet {
+			dao_id: DaoIdOf<T>,
+		},
 	}
 
 	#[pallet::error]
@@ -294,7 +297,7 @@ pub mod pallet {
 				Error::<T>::MetadataInvalid
 			);
 
-			//Self::deposit_event(Event::DaoCreated { owner: sender.clone(), dao_id: id.clone() });
+			Self::deposit_event(Event::DaoMetadataSet { dao_id: dao.id.clone() });
 
 			<Daos<T>>::try_mutate(dao.id, |maybe_dao| {
 				let dao = maybe_dao.as_mut().ok_or(Error::<T>::DaoDoesNotExist)?;
