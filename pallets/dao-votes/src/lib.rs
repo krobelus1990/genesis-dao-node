@@ -14,10 +14,12 @@ mod mock;
 mod tests;
 
 mod types;
+use pallet_dao_core::{CurrencyOf, DepositBalanceOf};
 pub use types::{Proposal, Vote};
 
 type ProposalIdOf<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLengthId>;
-type ProposalOf<T> = Proposal<ProposalIdOf<T>, pallet_dao_core::DaoIdOf<T>, <T as frame_system::Config>::AccountId>;
+type ProposalOf<T> =
+	Proposal<ProposalIdOf<T>, pallet_dao_core::DaoIdOf<T>, <T as frame_system::Config>::AccountId>;
 type VoteOf<T> = Vote<<T as frame_system::Config>::AccountId>;
 
 #[frame_support::pallet]
@@ -41,6 +43,9 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_dao_core::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+		#[pallet::constant]
+		type ProposalDeposit: Get<DepositBalanceOf<Self>>;
 
 		// #[pallet::constant]
 		// type MaxIdLength: Get<u32>;
@@ -76,8 +81,18 @@ pub mod pallet {
 			let prop_id: BoundedVec<_, _> =
 				prop_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
-			// want to reserve x amount of DAO Tokens for the creation of proposal
-			pallet_dao_assets::Pallet::<T>::do_reserve(asset_id.into(), &sender, One::one())?;
+			let deposit = <T as Config>::ProposalDeposit::get();
+
+			// reserve currency
+			CurrencyOf::<T>::reserve(&sender, deposit)?;
+
+			// reserve DAO token, but unreserve currency if that fails
+			if let Err(error) =
+				pallet_dao_assets::Pallet::<T>::do_reserve(asset_id.into(), &sender, One::one())
+			{
+				CurrencyOf::<T>::unreserve(&sender, deposit);
+				Err(error)?;
+			};
 
 			// store the proposal
 			<Proposals<T>>::insert(

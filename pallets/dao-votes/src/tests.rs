@@ -1,7 +1,7 @@
-use crate::{mock::*, Error, Proposals};
-use frame_support::{assert_noop, assert_ok, BoundedVec};
+use crate::{mock::*, Config, Error, Proposals};
+use frame_support::{assert_noop, assert_ok, traits::TypedGet, BoundedVec};
 use frame_system::ensure_signed;
-use pallet_dao_core::Error as DaoError;
+use pallet_dao_core::{CurrencyOf, Error as DaoError};
 
 #[test]
 fn it_creates_a_proposal() {
@@ -10,6 +10,7 @@ fn it_creates_a_proposal() {
 		let dao_name = b"TEST DAO".to_vec();
 		let prop_id = b"PROP".to_vec();
 		let origin = RuntimeOrigin::signed(1);
+		let sender = ensure_signed(origin.clone()).unwrap();
 
 		// cannot create a proposal without a DAO
 		assert_noop!(
@@ -32,13 +33,13 @@ fn it_creates_a_proposal() {
 		let dao = pallet_dao_core::Pallet::<Test>::load_dao(dao_id.clone()).unwrap();
 		let asset_id = dao.asset_id.unwrap();
 
+		// check that no DAO tokens are reserved yet
 		assert_eq!(
-			pallet_dao_assets::pallet::Pallet::<Test>::reserved(
-				asset_id,
-				ensure_signed(origin.clone()).unwrap()
-			),
+			pallet_dao_assets::pallet::Pallet::<Test>::reserved(asset_id, sender),
 			Default::default()
 		);
+
+		let reserved_currency = CurrencyOf::<Test>::reserved_balance(sender);
 
 		// test creating a proposal
 		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone()));
@@ -47,14 +48,14 @@ fn it_creates_a_proposal() {
 		let bounded_prop_id: BoundedVec<_, _> = prop_id.try_into().unwrap();
 		assert!(<Proposals<Test>>::contains_key(bounded_prop_id));
 
-		// creating a proposal should reserve DAO tokens
+		// creating a proposal should reserve currency
 		assert_eq!(
-			pallet_dao_assets::pallet::Pallet::<Test>::reserved(
-				asset_id,
-				ensure_signed(origin).unwrap()
-			),
-			1
+			CurrencyOf::<Test>::reserved_balance(sender),
+			reserved_currency + <Test as Config>::ProposalDeposit::get()
 		);
+
+		// creating a proposal should reserve DAO tokens
+		assert_eq!(pallet_dao_assets::pallet::Pallet::<Test>::reserved(asset_id, sender), 1);
 	});
 }
 
