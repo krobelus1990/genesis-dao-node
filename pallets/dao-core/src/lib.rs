@@ -33,7 +33,7 @@ pub type DepositBalanceOf<T> =
 type AssetIdOf<T> = <T as Config>::AssetId;
 pub type DaoIdOf<T> = BoundedVec<u8, <T as Config>::MaxLengthId>;
 type DaoNameOf<T> = BoundedVec<u8, <T as Config>::MaxLengthName>;
-type MetadataOf<T> = BoundedVec<u8, <T as Config>::MaxLengthMetadata>;
+pub type MetadataOf<T> = BoundedVec<u8, <T as Config>::MaxLengthMetadata>;
 type DaoOf<T> = Dao<
 	DaoIdOf<T>,
 	<T as frame_system::Config>::AccountId,

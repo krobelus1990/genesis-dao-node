@@ -12,9 +12,13 @@ fn it_creates_a_proposal() {
 		let origin = RuntimeOrigin::signed(1);
 		let sender = ensure_signed(origin.clone()).unwrap();
 
+		let metadata = b"http://my.cool.proposal".to_vec();
+		// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
+		let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+
 		// cannot create a proposal without a DAO
 		assert_noop!(
-			DaoVotes::create_proposal(origin.clone(), dao_id.clone(), prop_id.clone()),
+			DaoVotes::create_proposal(origin.clone(), dao_id.clone(), prop_id.clone(), metadata.clone(), hash.clone()),
 			DaoError::<Test>::DaoDoesNotExist
 		);
 
@@ -23,7 +27,7 @@ fn it_creates_a_proposal() {
 
 		// cannot create a proposal without DAO tokens existing (because they need to be reserved)
 		assert_noop!(
-			DaoVotes::create_proposal(origin.clone(), dao_id.clone(), prop_id.clone()),
+			DaoVotes::create_proposal(origin.clone(), dao_id.clone(), prop_id.clone(), metadata.clone(), hash.clone()),
 			Error::<Test>::DaoTokenNotYetIssued
 		);
 
@@ -42,7 +46,7 @@ fn it_creates_a_proposal() {
 		let reserved_currency = CurrencyOf::<Test>::reserved_balance(sender);
 
 		// test creating a proposal
-		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone()));
+		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone(), metadata.clone(), hash.clone()));
 
 		// check that a proposal exists with the given id
 		let bounded_prop_id: BoundedVec<_, _> = prop_id.try_into().unwrap();
@@ -67,6 +71,10 @@ fn it_creates_a_vote() {
 		let prop_id = b"PROP".to_vec();
 		let origin = RuntimeOrigin::signed(1);
 
+		let metadata = b"http://my.cool.proposal".to_vec();
+		// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
+		let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+
 		// cannot create a vote without a proposal
 		assert_noop!(
 			DaoVotes::create_vote(origin.clone(), prop_id.clone(), true),
@@ -78,7 +86,7 @@ fn it_creates_a_vote() {
 		// preparation: issue token
 		assert_ok!(DaoCore::issue_token(origin.clone(), dao_id.clone(), 1000));
 		// preparation: create a proposal
-		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone()));
+		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone(), metadata.clone(), hash.clone()));
 
 		// test creating a vote
 		assert_ok!(DaoVotes::create_vote(origin, prop_id, true));
