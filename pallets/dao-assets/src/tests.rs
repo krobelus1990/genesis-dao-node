@@ -284,12 +284,9 @@ fn lifecycle_should_work() {
 
 		assert_eq!(Balances::reserved_balance(&1), 0);
 
-		assert!(!Asset::<Test>::contains_key(0));
+		assert!(Asset::<Test>::get(0).unwrap().status == AssetStatus::Destroyed);
 		assert!(!Metadata::<Test>::contains_key(0));
 		assert_eq!(Account::<Test>::iter_prefix(0).count(), 0);
-
-		assert_ok!(Assets::do_force_create(0, 1, true, 1));
-		assert!(Asset::<Test>::contains_key(0));
 	});
 }
 
@@ -311,7 +308,6 @@ fn destroy_should_refund_approvals() {
 		assert_ok!(Assets::finish_destroy(RuntimeOrigin::signed(1), 0));
 
 		assert_eq!(Balances::reserved_balance(&1), 0);
-		assert_eq!(asset_ids(), vec![999]);
 
 		// all approvals are removed
 		assert!(Approvals::<Test>::iter().count().is_zero())
@@ -365,7 +361,7 @@ fn partial_destroy_should_work() {
 		System::assert_has_event(RuntimeEvent::Assets(crate::Event::Destroyed { asset_id: 0 }));
 
 		// Destroyed Asset should not exist
-		assert!(!Asset::<Test>::contains_key(0));
+		assert!(Asset::<Test>::get(0).unwrap().status == AssetStatus::Destroyed);
 	})
 }
 
@@ -693,7 +689,7 @@ fn finish_destroy_asset_destroys_asset() {
 		assert_ok!(Assets::finish_destroy(RuntimeOrigin::signed(1), 0));
 
 		// Asset is gone
-		assert!(Asset::<Test>::get(0).is_none());
+		assert!(Asset::<Test>::get(0).unwrap().status == AssetStatus::Destroyed);
 	})
 }
 

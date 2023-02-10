@@ -113,6 +113,11 @@ fn it_destroys_a_dao() {
 #[test]
 fn issues_a_token() {
 	new_test_ext().execute_with(|| {
+		assert_noop!(
+			DaoCore::issue_token(RuntimeOrigin::signed(1), b"NONE".to_vec(), 1000),
+			Error::<Test>::DaoDoesNotExist
+		);
+
 		assert_ok!(DaoCore::create_dao(
 			RuntimeOrigin::signed(1),
 			b"GDAO".to_vec(),
@@ -144,5 +149,31 @@ fn issues_a_token() {
 		let dao2 = DaoCore::load_dao(b"GDAO2".to_vec()).unwrap();
 		let asset_id2 = dao2.asset_id.unwrap();
 		assert_eq!(asset_id2, 2);
+	});
+}
+
+#[test]
+fn it_sets_metadata() {
+	new_test_ext().execute_with(|| {
+		let metadata = b"http://my.cool.dao".to_vec();
+		// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
+		let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+
+		assert_noop!(
+			DaoCore::set_metadata(RuntimeOrigin::signed(1), b"NONE".to_vec(), metadata.clone(), hash.clone()),
+			Error::<Test>::DaoDoesNotExist
+		);
+
+		assert_ok!(DaoCore::create_dao(
+			RuntimeOrigin::signed(1),
+			b"GDAO".to_vec(),
+			b"Genesis DAO".to_vec()
+		));
+		assert_ok!(DaoCore::set_metadata(RuntimeOrigin::signed(1), b"GDAO".to_vec(), metadata.clone(), hash.clone()));
+
+		let dao = DaoCore::load_dao(b"GDAO".to_vec()).unwrap();
+
+		assert_eq!(dao.meta, metadata);
+		assert_eq!(dao.meta_hash, hash);
 	});
 }
