@@ -14,10 +14,18 @@ mod mock;
 mod tests;
 
 mod types;
-pub use types::{Proposal, Vote};
+pub use types::*;
+
+use pallet_dao_core::{CurrencyOf, DepositBalanceOf, Error as DaoError};
 
 type ProposalIdOf<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLengthId>;
-type ProposalOf<T> = Proposal<ProposalIdOf<T>, pallet_dao_core::DaoIdOf<T>, <T as frame_system::Config>::AccountId>;
+type ProposalOf<T> = Proposal<
+	ProposalIdOf<T>,
+	pallet_dao_core::DaoIdOf<T>,
+	<T as frame_system::Config>::AccountId,
+	<T as frame_system::Config>::BlockNumber,
+	pallet_dao_core::MetadataOf<T>,
+>;
 type VoteOf<T> = Vote<<T as frame_system::Config>::AccountId>;
 
 #[frame_support::pallet]
@@ -42,6 +50,9 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_dao_core::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
+		#[pallet::constant]
+		type ProposalDeposit: Get<DepositBalanceOf<Self>>;
+
 		// #[pallet::constant]
 		// type MaxIdLength: Get<u32>;
 	}
@@ -58,6 +69,7 @@ pub mod pallet {
 		DaoTokenNotYetIssued,
 		ProposalIdInvalidLengthTooLong,
 		ProposalDoesNotExist,
+		ProposalIsNotActive,
 	}
 
 	#[pallet::call]
@@ -67,22 +79,47 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,
 			prop_id: Vec<u8>,
+			meta: Vec<u8>,
+			hash: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
 			let dao_id = dao.id;
 			let asset_id = dao.asset_id.ok_or(Error::<T>::DaoTokenNotYetIssued)?;
+			let meta: BoundedVec<_, _> =
+				meta.try_into().map_err(|_| DaoError::<T>::MetadataInvalidLengthTooLong)?;
+			let hash: BoundedVec<_, _> =
+				hash.try_into().map_err(|_| DaoError::<T>::HashInvalidWrongLength)?;
 
 			let prop_id: BoundedVec<_, _> =
 				prop_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
-			// want to reserve x amount of DAO Tokens for the creation of proposal
-			pallet_dao_assets::Pallet::<T>::do_reserve(asset_id.into(), &sender, One::one())?;
+			let deposit = <T as Config>::ProposalDeposit::get();
 
+			// reserve currency
+			CurrencyOf::<T>::reserve(&sender, deposit)?;
+
+			// reserve DAO token, but unreserve currency if that fails
+			if let Err(error) =
+				pallet_dao_assets::Pallet::<T>::do_reserve(asset_id.into(), &sender, One::one())
+			{
+				CurrencyOf::<T>::unreserve(&sender, deposit);
+				Err(error)?;
+			};
+
+			let birth_block = <frame_system::Pallet<T>>::block_number();
 			// store the proposal
 			<Proposals<T>>::insert(
 				prop_id.clone(),
-				Proposal { id: prop_id, dao_id, creator: sender },
+				Proposal {
+					id: prop_id,
+					dao_id,
+					creator: sender,
+					birth_block,
+					status: ProposalStatus::Active,
+					meta,
+					meta_hash: hash,
+				},
 			);
 			// emit an event
 			Self::deposit_event(Event::<T>::ProposalCreated {});
@@ -100,13 +137,17 @@ pub mod pallet {
 				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			// check that a proposal exists with the given id
+			let proposal = <Proposals<T>>::try_get(proposal_id.clone())
+				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
+
+			// check that the proposal is active
 			ensure!(
-				<Proposals<T>>::contains_key(proposal_id.clone()),
-				Error::<T>::ProposalDoesNotExist
+				proposal.status == ProposalStatus::Active,
+				Error::<T>::ProposalIsNotActive
 			);
 
 			// check if the proposal is still live (hardcoded duration in relation to the
-			// created event) store the vote with in favour or not in favour and the voter
+			// created event)
 
 			// store the vote
 			<Votes<T>>::insert(proposal_id, Vote { voter: sender, aye });

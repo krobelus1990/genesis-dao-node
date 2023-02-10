@@ -27,12 +27,13 @@ pub use frame_support::{
 	weights::Weight,
 };
 
-type DepositBalanceOf<T> =
-	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+pub type CurrencyOf<T> = <T as Config>::Currency;
+pub type DepositBalanceOf<T> =
+	<CurrencyOf<T> as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type AssetIdOf<T> = <T as Config>::AssetId;
 pub type DaoIdOf<T> = BoundedVec<u8, <T as Config>::MaxLengthId>;
 type DaoNameOf<T> = BoundedVec<u8, <T as Config>::MaxLengthName>;
-type MetadataOf<T> = BoundedVec<u8, <T as Config>::MaxLengthMetadata>;
+pub type MetadataOf<T> = BoundedVec<u8, <T as Config>::MaxLengthMetadata>;
 type DaoOf<T> = Dao<
 	DaoIdOf<T>,
 	<T as frame_system::Config>::AccountId,
