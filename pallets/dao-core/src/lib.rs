@@ -107,7 +107,7 @@ pub mod pallet {
 		DaoTokenIssued {
 			dao_id: DaoIdOf<T>,
 			supply: <T as pallet_dao_assets::Config>::Balance,
-			asset_id: <T as pallet_dao_assets::Config>::AssetId,
+			asset_id: <T as Config>::AssetId,
 		},
 		DaoMetadataSet {
 			dao_id: DaoIdOf<T>,
@@ -263,7 +263,7 @@ pub mod pallet {
 			Self::deposit_event(Event::DaoTokenIssued {
 				dao_id: dao.id.clone(),
 				supply,
-				asset_id: <CurrentAssetId<T>>::get().into(),
+				asset_id: <CurrentAssetId<T>>::get(),
 			});
 			// ... and link the dao to the asset
 			<Daos<T>>::try_mutate(dao.id, |maybe_dao| {
@@ -278,7 +278,7 @@ pub mod pallet {
 		/// - `dao_id`: The DAO for which to set metadata
 		/// - `meta`: HTTP or IPFS address for the metadata about this DAO (description, logo)
 		/// - `hash`: SHA3 hash of the metadata to be found via `meta`
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::set_metadata())]
 		pub fn set_metadata(
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,

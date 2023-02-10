@@ -14,8 +14,7 @@ use frame_system::RawOrigin;
 use crate::Pallet as DaoCore;
 
 /// Creates a DAO for the given caller
-/// - `caller`: AccountId of the dao creater
-///
+/// - `caller`: AccountId of the dao creator
 fn setup_dao<T: Config>(caller: T::AccountId) -> Vec<u8>{
 	let dao_id: Vec<u8> = b"GDAO".to_vec();
 
@@ -39,7 +38,6 @@ fn setup_caller<T: Config>() -> T::AccountId {
 
 /// Helper func to validate the benchmark flow by last event
 /// - `generic_event`: Any runtime event that we want to equal to the last event emitted
-///
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
@@ -73,7 +71,22 @@ benchmarks! {
   	verify {
 		let bounded_dao_id: BoundedVec<_, _> = dao_id.clone().try_into().expect("unbounded");
 		assert_last_event::<T>(Event::DaoTokenIssued {
-			dao_id: bounded_dao_id.clone(), supply: supply
+			dao_id: bounded_dao_id.clone(),
+			supply: supply,
+			asset_id: DaoCore::<T>::load_dao(dao_id.clone()).unwrap().asset_id.unwrap()
+		}.into());
+	}
+
+	set_metadata {
+		let caller = setup_caller::<T>();
+		let dao_id = setup_dao::<T>(caller.clone());
+		let metadata = b"http://my.cool.dao".to_vec();
+		let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+	}: _(RawOrigin::Signed(caller.clone()), dao_id.clone(), metadata.clone(), hash.clone())
+	verify {
+		let bounded_dao_id: BoundedVec<_, _> = dao_id.clone().try_into().expect("unbounded");
+		assert_last_event::<T>(Event::DaoMetadataSet {
+			dao_id: bounded_dao_id.clone()
 		}.into());
 	}
 

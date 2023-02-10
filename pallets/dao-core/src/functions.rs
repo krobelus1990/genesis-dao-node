@@ -15,7 +15,8 @@ impl<T: Config> Pallet<T> {
 	///
 	/// - `meta`: the address to be validated
 	pub fn metadata_is_valid(_meta: &MetadataOf<T>) -> bool {
-		// FIXME: add validation logic
+		// this is currently empty, but we will offer a hook to
+		// ink! in future versions to add custom validations.
 		true
 	}
 }
