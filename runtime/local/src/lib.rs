@@ -324,6 +324,7 @@ impl pallet_dao_core::Config for Runtime {
 	type MinLength = ConstU32<3>;
 	type MaxLengthId = ConstU32<8>;
 	type MaxLengthName = ConstU32<32>;
+	type MaxLengthMetadata = ConstU32<256>;
 	type Currency = Balances;
 	type DaoDeposit = ConstU128<10_000_000_000_000>;
 	type TokenUnits = ConstU8<9>;

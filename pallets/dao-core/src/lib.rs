@@ -32,7 +32,14 @@ type DepositBalanceOf<T> =
 type AssetIdOf<T> = <T as Config>::AssetId;
 pub type DaoIdOf<T> = BoundedVec<u8, <T as Config>::MaxLengthId>;
 type DaoNameOf<T> = BoundedVec<u8, <T as Config>::MaxLengthName>;
-type DaoOf<T> = Dao<DaoIdOf<T>, <T as frame_system::Config>::AccountId, DaoNameOf<T>, AssetIdOf<T>>;
+type MetadataOf<T> = BoundedVec<u8, <T as Config>::MaxLengthMetadata>;
+type DaoOf<T> = Dao<
+	DaoIdOf<T>,
+	<T as frame_system::Config>::AccountId,
+	DaoNameOf<T>,
+	AssetIdOf<T>,
+	MetadataOf<T>,
+>;
 
 pub mod weights;
 use weights::WeightInfo;
@@ -80,6 +87,9 @@ pub mod pallet {
 		type MaxLengthName: Get<u32>;
 
 		#[pallet::constant]
+		type MaxLengthMetadata: Get<u32>;
+
+		#[pallet::constant]
 		type TokenUnits: Get<u8>;
 	}
 
@@ -98,6 +108,9 @@ pub mod pallet {
 			supply: <T as pallet_dao_assets::Config>::Balance,
 			asset_id: <T as pallet_dao_assets::Config>::AssetId,
 		},
+		DaoMetadataSet {
+			dao_id: DaoIdOf<T>,
+		},
 	}
 
 	#[pallet::error]
@@ -111,6 +124,9 @@ pub mod pallet {
 		DaoDoesNotExist,
 		DaoSignerNotOwner,
 		DaoTokenAlreadyIssued,
+		MetadataInvalidLengthTooLong,
+		MetadataInvalid,
+		HashInvalidWrongLength,
 	}
 
 	/// Key-Value Store of all _DAOs_, with the key being the `dao_id`.
@@ -129,9 +145,8 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Create a fresh DAO.
 		///
-		/// - `dao_id`: A unique identifier for the DAO, bounded by _MinLength_ & _MaxLength_ in the
-		///   config
-		/// - `dao_name`: The name of the to-be-created DAO.
+		/// - `dao_id`: Unique identifier for the DAO, bounded by _MinLength_ & _MaxLengthId_
+		/// - `dao_name`: Name of the to-be-created DAO, bounded by _MinLength_ & _MaxLengthName_
 		///
 		/// A DAO must reserve the _DaoDeposit_ fee.
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::create_dao())]
@@ -164,7 +179,15 @@ pub mod pallet {
 			<T as Config>::Currency::reserve(&sender, <T as Config>::DaoDeposit::get())?;
 
 			Self::deposit_event(Event::DaoCreated { owner: sender.clone(), dao_id: id.clone() });
-			<Daos<T>>::insert(id.clone(), Dao { id, name, owner: sender, asset_id: None });
+			let dao = Dao {
+				id: id.clone(),
+				name,
+				owner: sender,
+				asset_id: None,
+				meta: Default::default(),
+				meta_hash: Default::default(),
+			};
+			<Daos<T>>::insert(id, dao);
 			Ok(())
 		}
 
@@ -195,8 +218,8 @@ pub mod pallet {
 
 		/// Issue the DAO token
 		///
-		/// - `dao_id`: The DAO that wants to issue a token
-		/// - `supply`: The total supply by the DAO
+		/// - `dao_id`: The DAO for which to issue a token
+		/// - `supply`: The total supply of the token to be issued
 		///
 		/// Tokens can only be issued once and the signer of this TX needs to be the owner
 		/// of the DAO.
@@ -245,6 +268,41 @@ pub mod pallet {
 			<Daos<T>>::try_mutate(dao.id, |maybe_dao| {
 				let d = maybe_dao.as_mut().ok_or(Error::<T>::DaoDoesNotExist)?;
 				d.asset_id = Some(<CurrentAssetId<T>>::get());
+				Ok(())
+			})
+		}
+
+		/// Set metadata
+		///
+		/// - `dao_id`: The DAO for which to set metadata
+		/// - `meta`: HTTP or IPFS address for the metadata about this DAO (description, logo)
+		/// - `hash`: SHA3 hash of the metadata to be found via `meta`
+		#[pallet::weight(0)]
+		pub fn set_metadata(
+			origin: OriginFor<T>,
+			dao_id: Vec<u8>,
+			meta: Vec<u8>,
+			hash: Vec<u8>,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let dao = Self::load_dao(dao_id)?;
+			ensure!(dao.owner == sender, Error::<T>::DaoSignerNotOwner);
+
+			let meta: BoundedVec<_, _> =
+				meta.try_into().map_err(|_| Error::<T>::MetadataInvalidLengthTooLong)?;
+			let hash: BoundedVec<_, _> =
+				hash.try_into().map_err(|_| Error::<T>::HashInvalidWrongLength)?;
+			ensure!(
+				meta.is_empty() && hash.is_empty() || Self::metadata_is_valid(&meta),
+				Error::<T>::MetadataInvalid
+			);
+
+			Self::deposit_event(Event::DaoMetadataSet { dao_id: dao.id.clone() });
+
+			<Daos<T>>::try_mutate(dao.id, |maybe_dao| {
+				let dao = maybe_dao.as_mut().ok_or(Error::<T>::DaoDoesNotExist)?;
+				dao.meta = meta;
+				dao.meta_hash = hash;
 				Ok(())
 			})
 		}

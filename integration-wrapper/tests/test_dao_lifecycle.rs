@@ -7,7 +7,7 @@ fn dao_lifecycle() {
 	// test account to be used
 	let user = PairSigner::new(AccountKeyring::Alice.pair());
 
-	let (dao_id, dao_name) = (b"test".to_vec(), b"TEST DAO".to_vec());
+	let (dao_id, dao_name) = (b"DAO".to_vec(), b"Test DAO".to_vec());
 
 	match create_dao(&user, dao_id.clone(), dao_name) {
 		Err(error) => assert!(false, "Error creating DAO: {error}"),
@@ -15,6 +15,17 @@ fn dao_lifecycle() {
 		Ok(Some(event)) => {
 			assert_eq!(&event.owner, user.account_id(), "Created DAO with wrong owner");
 			assert_eq!(event.dao_id.0, dao_id, "Created DAO with wrong id");
+		},
+	}
+
+	let metadata = b"http://my.cool.dao".to_vec();
+	// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
+	let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+	match set_metadata(&user, dao_id.clone(), metadata, hash) {
+		Err(error) => assert!(false, "Error setting DAO metadata: {error}"),
+		Ok(None) => assert!(false, "No DaoMetadataSet event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.dao_id.0, dao_id, "Set metadata for wrong DAO");
 		},
 	}
 
