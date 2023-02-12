@@ -1,6 +1,4 @@
----
-title: Testing
----
+# Testing
 
 Genesis DAO features three ways of ensuring quality assurance via testing:
 

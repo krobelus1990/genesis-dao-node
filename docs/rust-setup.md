@@ -1,8 +1,6 @@
----
-title: Installation
----
+# Rust Setup
 
-This guide is for reference only, please check the latest information on getting starting with Substrate 
+This guide is for reference only, please check the latest information on getting starting with Substrate
 [here](https://docs.substrate.io/main-docs/install/).
 
 This page will guide you through the **2 steps** needed to prepare a computer for **Substrate** development.
@@ -223,3 +221,4 @@ rustup uninstall nightly
 rustup install nightly-<yyyy-MM-dd>
 rustup target add wasm32-unknown-unknown --toolchain nightly-<yyyy-MM-dd>
 ```
+````
