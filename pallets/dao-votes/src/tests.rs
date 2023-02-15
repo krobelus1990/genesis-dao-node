@@ -46,7 +46,7 @@ fn it_creates_a_proposal() {
 		let reserved_currency = CurrencyOf::<Test>::reserved_balance(sender);
 
 		// test creating a proposal
-		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone(), metadata.clone(), hash.clone()));
+		assert_ok!(DaoVotes::create_proposal(origin, dao_id, prop_id.clone(), metadata, hash));
 
 		// check that a proposal exists with the given id
 		let bounded_prop_id: BoundedVec<_, _> = prop_id.try_into().unwrap();
@@ -86,7 +86,7 @@ fn it_creates_a_vote() {
 		// preparation: issue token
 		assert_ok!(DaoCore::issue_token(origin.clone(), dao_id.clone(), 1000));
 		// preparation: create a proposal
-		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone(), metadata.clone(), hash.clone()));
+		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone(), metadata, hash));
 
 		// test creating a vote
 		assert_ok!(DaoVotes::create_vote(origin, prop_id, true));

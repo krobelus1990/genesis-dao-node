@@ -1,7 +1,9 @@
 use node_runtime::{
 	assets::events::{AccountsDestroyed, Destroyed, DestructionStarted, Transferred},
 	dao_core::events::{DaoCreated, DaoDestroyed, DaoMetadataSet, DaoTokenIssued},
-	runtime_types::{pallet_dao_core::types::Dao, sp_core::bounded::bounded_vec::BoundedVec},
+	runtime_types::{
+		pallet_dao_core::types::Dao as DaoInternal, sp_core::bounded::bounded_vec::BoundedVec,
+	},
 };
 use subxt::{tx::Signer, utils::AccountId32, OnlineClient, PolkadotConfig};
 
@@ -85,13 +87,12 @@ pub async fn set_metadata(
 	Ok(progress.wait_for_finalized_success().await?.find_first()?)
 }
 
+type Dao = DaoInternal<BoundedVec<u8>, AccountId32, BoundedVec<u8>, u32, BoundedVec<u8>>;
+
 #[tokio::main]
 pub async fn get_dao(
 	dao_id: Vec<u8>,
-) -> Result<
-	Option<Dao<BoundedVec<u8>, AccountId32, BoundedVec<u8>, u32, BoundedVec<u8>>>,
-	Box<(dyn std::error::Error + 'static)>,
-> {
+) -> Result<Option<Dao>, Box<(dyn std::error::Error + 'static)>> {
 	// client that can submit transactions
 	let api = OnlineClient::<Config>::new().await?;
 
