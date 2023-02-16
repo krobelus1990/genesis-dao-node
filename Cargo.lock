@@ -3351,6 +3351,7 @@ dependencies = [
  "pallet-dao-assets",
  "pallet-dao-core",
  "pallet-grandpa",
+ "pallet-multisig",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-timestamp",
@@ -4058,6 +4059,22 @@ dependencies = [
  "sp-runtime 7.0.0",
  "sp-session",
  "sp-staking",
+ "sp-std 5.0.0",
+]
+
+[[package]]
+name = "pallet-multisig"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.35#2a0eeff4008573f6ead70eb9bd43cf6d268d2e7d"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io 7.0.0",
+ "sp-runtime 7.0.0",
  "sp-std 5.0.0",
 ]
 
