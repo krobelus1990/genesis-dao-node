@@ -10,7 +10,7 @@ use sp_runtime::{traits::Convert, FixedPointNumber, FixedPointOperand, FixedU128
 pub(super) type DepositBalanceOf<T, I = ()> =
 	<<T as Config<I>>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
 pub(super) type AssetAccountOf<T, I> =
-	AssetAccount<<T as Config<I>>::Balance, DepositBalanceOf<T, I>, <T as Config<I>>::Extra>;
+	AssetAccount<<T as Config<I>>::Balance, DepositBalanceOf<T, I>>;
 
 /// AssetStatus holds the current state of the asset. It could either be Live and available for use,
 /// or in a Destroying state.
@@ -90,15 +90,13 @@ impl<Balance> ExistenceReason<Balance> {
 }
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct AssetAccount<Balance, DepositBalance, Extra> {
+pub struct AssetAccount<Balance, DepositBalance> {
 	/// Free balance.
 	pub(super) balance: Balance,
 	/// Reserved balance.
 	pub(super) reserved: Balance,
 	/// The reason for the existence of the account.
 	pub(super) reason: ExistenceReason<DepositBalance>,
-	/// Additional "sidecar" data, in case some other pallet wants to use this storage item.
-	pub(super) extra: Extra,
 }
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
