@@ -18,11 +18,8 @@ mod tests;
 
 pub mod weights;
 
-mod extra_mutator;
-pub use extra_mutator::*;
 mod functions;
 mod impl_fungibles;
-mod impl_stored_map;
 mod types;
 
 pub use types::*;
@@ -34,7 +31,6 @@ use sp_runtime::{
 	},
 	ArithmeticError, TokenError,
 };
-use sp_std::borrow::Borrow;
 
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
@@ -44,7 +40,7 @@ use frame_support::{
 	traits::{
 		tokens::{fungibles, DepositConsequence, WithdrawConsequence},
 		BalanceStatus::Reserved,
-		Currency, EnsureOriginWithArg, ReservableCurrency, StoredMap,
+		Currency, EnsureOriginWithArg, ReservableCurrency,
 	},
 };
 use frame_system::Config as SystemConfig;

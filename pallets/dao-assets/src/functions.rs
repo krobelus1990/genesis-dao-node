@@ -15,14 +15,6 @@ use DeadConsequence::*;
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	// Public immutables
 
-	/// Return the extra "side-car" data for `id`/`who`, or `None` if the account doesn't exist.
-	pub fn adjust_extra(
-		id: T::AssetId,
-		who: impl sp_std::borrow::Borrow<T::AccountId>,
-	) -> Option<ExtraMutator<T, I>> {
-		ExtraMutator::maybe_new(id, who)
-	}
-
 	/// Get the asset `id` free balance of `who`, or zero if the asset-account doesn't exist.
 	pub fn balance(id: T::AssetId, who: impl sp_std::borrow::Borrow<T::AccountId>) -> T::Balance {
 		Self::maybe_balance(id, who).unwrap_or_default()
@@ -284,7 +276,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				balance: Zero::zero(),
 				reserved: Zero::zero(),
 				reason,
-				extra: T::Extra::default(),
 			},
 		);
 		Ok(())
@@ -375,7 +366,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 							balance: amount,
 							reserved: Zero::zero(),
 							reason: Self::new_account(beneficiary, details, None)?,
-							extra: T::Extra::default(),
 						});
 					},
 				}
@@ -604,7 +594,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 							balance: credit,
 							reserved: Zero::zero(),
 							reason: Self::new_account(dest, details, None)?,
-							extra: T::Extra::default(),
 						});
 					},
 				}
