@@ -155,9 +155,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type StringLimit: Get<u32>;
 
-		/// Additional data to be stored with an account's asset balance.
-		type Extra: Member + Parameter + Default + MaxEncodedLen;
-
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 
