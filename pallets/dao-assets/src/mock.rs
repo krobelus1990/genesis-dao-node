@@ -82,7 +82,6 @@ impl Config for Test {
 	type ApprovalDeposit = ConstU64<1>;
 	type StringLimit = ConstU32<50>;
 	type WeightInfo = ();
-	type Extra = ();
 	type RemoveItemsLimit = ConstU32<5>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
