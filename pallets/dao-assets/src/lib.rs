@@ -292,9 +292,17 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// Some asset class was created.
-		Created { asset_id: T::AssetId, creator: T::AccountId, owner: T::AccountId },
+		Created {
+			asset_id: T::AssetId,
+			creator: T::AccountId,
+			owner: T::AccountId,
+		},
 		/// Some assets were issued.
-		Issued { asset_id: T::AssetId, owner: T::AccountId, total_supply: T::Balance },
+		Issued {
+			asset_id: T::AssetId,
+			owner: T::AccountId,
+			total_supply: T::Balance,
+		},
 		/// Some assets were transferred.
 		Transferred {
 			asset_id: T::AssetId,
@@ -303,7 +311,11 @@ pub mod pallet {
 			amount: T::Balance,
 		},
 		/// Some assets were destroyed.
-		Burned { asset_id: T::AssetId, owner: T::AccountId, balance: T::Balance },
+		Burned {
+			asset_id: T::AssetId,
+			owner: T::AccountId,
+			balance: T::Balance,
+		},
 		/// The management team changed.
 		TeamChanged {
 			asset_id: T::AssetId,
@@ -311,8 +323,15 @@ pub mod pallet {
 			admin: T::AccountId,
 		},
 		/// The owner changed.
-		OwnerChanged { asset_id: T::AssetId, owner: T::AccountId },
-		AccountsDestroyed { asset_id: T::AssetId, accounts_destroyed: u32, accounts_remaining: u32 },
+		OwnerChanged {
+			asset_id: T::AssetId,
+			owner: T::AccountId,
+		},
+		AccountsDestroyed {
+			asset_id: T::AssetId,
+			accounts_destroyed: u32,
+			accounts_remaining: u32,
+		},
 		/// Approvals were destroyed for given asset.
 		ApprovalsDestroyed {
 			asset_id: T::AssetId,
@@ -320,11 +339,18 @@ pub mod pallet {
 			approvals_remaining: u32,
 		},
 		/// An asset class is in the process of being destroyed.
-		DestructionStarted { asset_id: T::AssetId },
+		DestructionStarted {
+			asset_id: T::AssetId,
+		},
 		/// An asset class was destroyed.
-		Destroyed { asset_id: T::AssetId },
+		Destroyed {
+			asset_id: T::AssetId,
+		},
 		/// Some asset class was force-created.
-		ForceCreated { asset_id: T::AssetId, owner: T::AccountId },
+		ForceCreated {
+			asset_id: T::AssetId,
+			owner: T::AccountId,
+		},
 		/// New metadata has been set for an asset.
 		MetadataSet {
 			asset_id: T::AssetId,
@@ -333,7 +359,9 @@ pub mod pallet {
 			decimals: u8,
 		},
 		/// Metadata has been cleared for an asset.
-		MetadataCleared { asset_id: T::AssetId },
+		MetadataCleared {
+			asset_id: T::AssetId,
+		},
 		/// (Additional) funds have been approved for transfer to a destination account.
 		ApprovedTransfer {
 			asset_id: T::AssetId,
@@ -342,7 +370,11 @@ pub mod pallet {
 			amount: T::Balance,
 		},
 		/// An approval for account `delegate` was cancelled by `owner`.
-		ApprovalCancelled { asset_id: T::AssetId, owner: T::AccountId, delegate: T::AccountId },
+		ApprovalCancelled {
+			asset_id: T::AssetId,
+			owner: T::AccountId,
+			delegate: T::AccountId,
+		},
 		/// An `amount` was transferred in its entirety from `owner` to `destination` by
 		/// the approved `delegate`.
 		TransferredApproved {
@@ -353,7 +385,9 @@ pub mod pallet {
 			amount: T::Balance,
 		},
 		/// An asset has had its attributes changed by the `Force` origin.
-		AssetStatusChanged { asset_id: T::AssetId },
+		AssetStatusChanged {
+			asset_id: T::AssetId,
+		},
 	}
 
 	#[pallet::error]
