@@ -72,11 +72,11 @@ Running the frontend locally:
 1. Start the node by either compiling or with docker.
 2. Run `yarn && yarn dev` in the [frontend](https://github.com/deep-ink-ventures/genesis-dao-frontend) repository and visit the interface at `localhost:3000`
 
-### Polkadot.js.org System Test Walkthrough
+## Polkadot.js.org System Test Walkthrough
 
 In order to test the system you have to have the node running. We assume for this that you have the node on `127.0.0.1:9944`, which means that you can review it on [the explorer](https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/explorer).
 
-#### Create a DAO
+### Create a DAO
 Within the Developer Settings -> Extrinsics, select the `DaoCore` extrinsic and create a DAO.
 
 <img width="1792" alt="Screenshot 2023-02-20 at 08 58 31" src="https://user-images.githubusercontent.com/120174523/220048109-8333223b-5fc9-4086-bbec-7aa26aa36ef2.png">
@@ -85,7 +85,7 @@ The minimum and maximum length for the values is configured [here](https://githu
 
 > DAO Creation reserves [a portion of your native balance](https://github.com/deep-ink-ventures/genesis-dao-node/blob/main/runtime/local/src/lib.rs#L345). This will be DOT, once this chain becomes a system parachain.
 
-#### Issue a token
+### Issue a token
 
 Within the Developer Settings -> Extrinsics, select the `DaoCore` extrinsic and issue a token.
 
@@ -93,7 +93,7 @@ As the owner of the DAO you can now issue a token with an arbitraty supply. This
 
 <img width="1792" alt="Screenshot 2023-02-20 at 08 59 25" src="https://user-images.githubusercontent.com/120174523/220048891-e1f616af-5fd3-48ba-966b-96973888a212.png">
 
-#### Set metadata
+### Set metadata
 A DAO can store metadata such as a logo, description and (optional) contact data in a JSON format that is still [under specification](https://github.com/deep-ink-ventures/genesis-dao-node/issues/6). This JSON format needs to be uploaded either to a CDN or on IPFS. A hash value to validate the integrity of the JSON needs to be provided as well. We are building a [backend services](https://github.com/deep-ink-ventures/genesis-dao-service) to help users doing this without hassle, but everyone is free to just upload their own files and call this extrinsic afterwards.
 
 <img width="1792" alt="Screenshot 2023-02-20 at 09 00 17" src="https://user-images.githubusercontent.com/120174523/220049836-12822e88-0b80-4479-a109-0b3a9a6000bb.png">
@@ -108,7 +108,7 @@ You can read the chain state to verify that your DAO has been created correctly.
 
 <img width="1787" alt="Screenshot 2023-02-20 at 09 00 44" src="https://user-images.githubusercontent.com/120174523/220050115-6a16255c-167e-4481-abab-6bf9c436295e.png">
 
-#### Destroying a DAO
+### Destroying a DAO
 A DAO can be easily destroyed and the reserved balance is freed. However, in order to do so, the token needs to be destroyed first.
 
 In the extrinsics, visit `assets` and start destroying the token.
