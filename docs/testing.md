@@ -56,7 +56,6 @@ Compile & run the node by either
 Afterwards navigate to to the [respective port config](https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/explorer)
 on Polkadot.js.org and test the intrinsics.
 
-
 ### Built in interface
 
 There are again, different ways of running this - with docker or without.
@@ -72,3 +71,4 @@ Running the frontend locally:
 
 1. Start the node by either compiling or with docker.
 2. Run `yarn && yarn dev` in the [frontend](https://github.com/deep-ink-ventures/genesis-dao-frontend) repository and visit the interface at `localhost:3000`
+

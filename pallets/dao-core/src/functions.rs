@@ -11,8 +11,6 @@ impl<T: Config> Pallet<T> {
 		<Daos<T>>::get(bounded_dao_id).ok_or(Error::<T>::DaoDoesNotExist)
 	}
 
-	/// Determine whether 'meta' is a valid HTTP or IPFS address
-	///
 	/// - `meta`: the address to be validated
 	pub fn metadata_is_valid(_meta: &MetadataOf<T>) -> bool {
 		// this is currently empty, but we will offer a hook to
