@@ -274,20 +274,18 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	}
 
 	/// Returns a deposit, destroying an asset-account.
-	pub(super) fn do_refund(id: T::AssetId, who: T::AccountId, allow_burn: bool) -> DispatchResult {
+	pub(super) fn do_refund(id: T::AssetId, who: T::AccountId) -> DispatchResult {
 		let mut account = Account::<T, I>::get(id, &who).ok_or(Error::<T, I>::NoDeposit)?;
 		let deposit = account.reason.take_deposit().ok_or(Error::<T, I>::NoDeposit)?;
 		let mut details = Asset::<T, I>::get(id).ok_or(Error::<T, I>::Unknown)?;
 		ensure!(details.status == AssetStatus::Live, Error::<T, I>::AssetNotLive);
-		ensure!(account.balance.is_zero() || allow_burn, Error::<T, I>::WouldBurn);
+		ensure!(account.balance.is_zero(), Error::<T, I>::WouldBurn);
 
 		T::Currency::unreserve(&who, deposit);
 
-		if let Remove = Self::dead_account(&who, &mut details, &account.reason, false) {
-			Account::<T, I>::remove(id, &who);
-		} else {
-			debug_assert!(false, "refund did not result in dead account?!");
-		}
+		details.accounts.saturating_dec();
+		Account::<T, I>::remove(id, &who);
+
 		Asset::<T, I>::insert(id, details);
 		Ok(())
 	}
