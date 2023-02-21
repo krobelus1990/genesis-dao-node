@@ -7,10 +7,19 @@ use frame_support::{
 };
 use sp_runtime::{traits::Convert, FixedPointNumber, FixedPointOperand, FixedU128};
 
-pub(super) type DepositBalanceOf<T, I = ()> =
-	<<T as Config<I>>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
-pub(super) type AssetAccountOf<T, I> =
-	AssetAccount<<T as Config<I>>::Balance, DepositBalanceOf<T, I>>;
+// Type alias for `frame_system`'s account id.
+type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+// This pallet's asset id and balance type.
+type AssetIdOf<T, I> = <T as Config<I>>::AssetId;
+pub type AssetBalanceOf<T, I> = <T as Config<I>>::Balance;
+// Generic fungible balance type.
+pub type BalanceOf<F, T> = <F as fungible::Inspect<AccountIdOf<T>>>::Balance;
+// The deposit balance type
+pub type DepositBalanceOf<T, I> = <<T as Config<I>>::Currency as Currency<AccountIdOf<T>>>::Balance;
+// The account data for an asset
+pub type AssetAccountOf<T, I> = AssetAccount<AssetBalanceOf<T, I>, DepositBalanceOf<T, I>>;
+pub type AssetDetailsOf<T, I> =
+	AssetDetails<AssetBalanceOf<T, I>, AccountIdOf<T>, DepositBalanceOf<T, I>>;
 
 /// AssetStatus holds the current state of the asset. It could either be Live and available for use,
 /// or in a Destroying state.
@@ -155,14 +164,6 @@ pub enum ConversionError {
 	/// converted.
 	AssetNotSufficient,
 }
-
-// Type alias for `frame_system`'s account id.
-type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-// This pallet's asset id and balance type.
-type AssetIdOf<T, I> = <T as Config<I>>::AssetId;
-type AssetBalanceOf<T, I> = <T as Config<I>>::Balance;
-// Generic fungible balance type.
-type BalanceOf<F, T> = <F as fungible::Inspect<AccountIdOf<T>>>::Balance;
 
 /// Converts a balance value into an asset balance based on the ratio between the fungible's
 /// minimum balance and the minimum asset balance.

@@ -2,6 +2,8 @@
 
 use super::*;
 use frame_support::{traits::Get, BoundedVec};
+use frame_system::pallet_prelude::BlockNumberFor;
+use sp_std::borrow::Borrow;
 
 #[must_use]
 pub(super) enum DeadConsequence {
@@ -16,28 +18,22 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	// Public immutables
 
 	/// Get the asset `id` free balance of `who`, or zero if the asset-account doesn't exist.
-	pub fn balance(id: T::AssetId, who: impl sp_std::borrow::Borrow<T::AccountId>) -> T::Balance {
+	pub fn balance(id: T::AssetId, who: impl Borrow<T::AccountId>) -> T::Balance {
 		Self::maybe_balance(id, who).unwrap_or_default()
 	}
 
 	/// Get the asset `id` reserved balance of `who`, or zero if the asset-account doesn't exist.
-	pub fn reserved(id: T::AssetId, who: impl sp_std::borrow::Borrow<T::AccountId>) -> T::Balance {
+	pub fn reserved(id: T::AssetId, who: impl Borrow<T::AccountId>) -> T::Balance {
 		Self::maybe_reserved(id, who).unwrap_or_default()
 	}
 
 	/// Get the asset `id` free balance of `who` if the asset-account exists.
-	pub fn maybe_balance(
-		id: T::AssetId,
-		who: impl sp_std::borrow::Borrow<T::AccountId>,
-	) -> Option<T::Balance> {
+	pub fn maybe_balance(id: T::AssetId, who: impl Borrow<T::AccountId>) -> Option<T::Balance> {
 		Account::<T, I>::get(id, who.borrow()).map(|a| a.balance)
 	}
 
 	/// Get the asset `id` reserved balance of `who` if the asset-account exists.
-	pub fn maybe_reserved(
-		id: T::AssetId,
-		who: impl sp_std::borrow::Borrow<T::AccountId>,
-	) -> Option<T::Balance> {
+	pub fn maybe_reserved(id: T::AssetId, who: impl Borrow<T::AccountId>) -> Option<T::Balance> {
 		Account::<T, I>::get(id, who.borrow()).map(|a| a.reserved)
 	}
 
@@ -53,7 +49,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 	pub(super) fn new_account(
 		who: &T::AccountId,
-		d: &mut AssetDetails<T::Balance, T::AccountId, DepositBalanceOf<T, I>>,
+		d: &mut AssetDetailsOf<T, I>,
 		maybe_deposit: Option<DepositBalanceOf<T, I>>,
 	) -> Result<ExistenceReason<DepositBalanceOf<T, I>>, DispatchError> {
 		let accounts = d.accounts.checked_add(1).ok_or(ArithmeticError::Overflow)?;
@@ -73,7 +69,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 	pub(super) fn dead_account(
 		who: &T::AccountId,
-		d: &mut AssetDetails<T::Balance, T::AccountId, DepositBalanceOf<T, I>>,
+		d: &mut AssetDetailsOf<T, I>,
 		reason: &ExistenceReason<DepositBalanceOf<T, I>>,
 		force: bool,
 	) -> DeadConsequence {
@@ -272,11 +268,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		Account::<T, I>::insert(
 			id,
 			&who,
-			AssetAccountOf::<T, I> {
-				balance: Zero::zero(),
-				reserved: Zero::zero(),
-				reason,
-			},
+			AssetAccountOf::<T, I> { balance: Zero::zero(), reserved: Zero::zero(), reason },
 		);
 		Ok(())
 	}
@@ -341,7 +333,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		beneficiary: &T::AccountId,
 		amount: T::Balance,
 		check: impl FnOnce(
-			&mut AssetDetails<T::Balance, T::AccountId, DepositBalanceOf<T, I>>,
+			&mut AssetDetailsOf<T, I>,
 		) -> DispatchResult,
 	) -> DispatchResult {
 		if amount.is_zero() {
@@ -423,7 +415,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		f: DebitFlags,
 		check: impl FnOnce(
 			T::Balance,
-			&mut AssetDetails<T::Balance, T::AccountId, DepositBalanceOf<T, I>>,
+			&mut AssetDetailsOf<T, I>,
 		) -> DispatchResult,
 	) -> Result<T::Balance, DispatchError> {
 		if amount.is_zero() {
@@ -466,7 +458,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	/// Reserves some `amount` of asset `id` balance of `target`.
 	pub fn do_reserve(
 		id: T::AssetId,
-		target: impl sp_std::borrow::Borrow<T::AccountId>,
+		target: impl Borrow<T::AccountId>,
 		amount: T::Balance,
 	) -> Result<T::Balance, DispatchError> {
 		if amount.is_zero() {
@@ -498,7 +490,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	/// If `amount` is greater than reserved balance, then the whole reserved balance is unreserved.
 	pub fn do_unreserve(
 		id: T::AssetId,
-		target: impl sp_std::borrow::Borrow<T::AccountId>,
+		target: impl Borrow<T::AccountId>,
 		mut amount: T::Balance,
 	) -> Result<T::Balance, DispatchError> {
 		if amount.is_zero() {
@@ -680,7 +672,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 	/// Destroy accounts associated with a given asset up to the max (T::RemoveItemsLimit).
 	///
-	/// Each call emits the `Event::DestroyedAccounts` event.
+	/// Each call emits the `Event::AccountsDestroyed` event.
 	/// Returns the number of destroyed accounts.
 	pub(super) fn do_destroy_accounts(
 		id: T::AssetId,
@@ -690,6 +682,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		let mut remaining_accounts = 0;
 		Asset::<T, I>::try_mutate_exists(id, |maybe_details| -> Result<(), DispatchError> {
 			let details = maybe_details.as_mut().ok_or(Error::<T, I>::Unknown)?;
+
 			// Should only destroy accounts while the asset is in a destroying state
 			ensure!(details.status == AssetStatus::Destroying, Error::<T, I>::IncorrectStatus);
 
@@ -714,7 +707,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 	/// Destroy approvals associated with a given asset up to the max (T::RemoveItemsLimit).
 	///
-	/// Each call emits the `Event::DestroyedApprovals` event
+	/// Each call emits the `Event::ApprovalsDestroyed` event
 	/// Returns the number of destroyed approvals.
 	pub(super) fn do_destroy_approvals(
 		id: T::AssetId,
@@ -761,6 +754,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				details.deposit.saturating_add(metadata.deposit),
 			);
 			details.status = AssetStatus::Destroyed;
+
 			Self::deposit_event(Event::Destroyed { asset_id: id });
 
 			Ok(())

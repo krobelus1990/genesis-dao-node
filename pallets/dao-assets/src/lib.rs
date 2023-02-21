@@ -327,6 +327,7 @@ pub mod pallet {
 			asset_id: T::AssetId,
 			owner: T::AccountId,
 		},
+		/// Accounts were destroyed for given asset.
 		AccountsDestroyed {
 			asset_id: T::AssetId,
 			accounts_destroyed: u32,
