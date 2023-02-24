@@ -16,17 +16,22 @@ mod tests;
 mod types;
 pub use types::*;
 
-use pallet_dao_core::{CurrencyOf, DepositBalanceOf, Error as DaoError};
+mod governance_types;
+use governance_types::*;
+
+use pallet_dao_assets::AssetBalanceOf;
+use pallet_dao_core::{CurrencyOf, DaoIdOf, DepositBalanceOf, Error as DaoError};
 
 type ProposalIdOf<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLengthId>;
 type ProposalOf<T> = Proposal<
 	ProposalIdOf<T>,
-	pallet_dao_core::DaoIdOf<T>,
+	DaoIdOf<T>,
 	<T as frame_system::Config>::AccountId,
 	<T as frame_system::Config>::BlockNumber,
 	pallet_dao_core::MetadataOf<T>,
 >;
 type VoteOf<T> = Vote<<T as frame_system::Config>::AccountId>;
+type GovernanceOf<T, I = ()> = Governance<AssetBalanceOf<T, I>>;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -34,6 +39,10 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+
+	#[pallet::storage]
+	pub(super) type Governances<T: Config> =
+		StorageMap<_, Twox64Concat, DaoIdOf<T>, GovernanceOf<T>>;
 
 	#[pallet::storage]
 	pub(super) type Proposals<T: Config> =
@@ -67,6 +76,7 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		DaoTokenNotYetIssued,
+		GovernanceNotSet,
 		ProposalIdInvalidLengthTooLong,
 		ProposalDoesNotExist,
 		ProposalIsNotActive,
@@ -86,6 +96,9 @@ pub mod pallet {
 			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
 			let dao_id = dao.id;
 			let asset_id = dao.asset_id.ok_or(Error::<T>::DaoTokenNotYetIssued)?;
+			let governance =
+				<Governances<T>>::get(dao_id.clone()).ok_or(Error::<T>::GovernanceNotSet)?;
+
 			let meta: BoundedVec<_, _> =
 				meta.try_into().map_err(|_| DaoError::<T>::MetadataInvalidLengthTooLong)?;
 			let hash: BoundedVec<_, _> =
@@ -100,9 +113,11 @@ pub mod pallet {
 			CurrencyOf::<T>::reserve(&sender, deposit)?;
 
 			// reserve DAO token, but unreserve currency if that fails
-			if let Err(error) =
-				pallet_dao_assets::Pallet::<T>::do_reserve(asset_id.into(), &sender, One::one())
-			{
+			if let Err(error) = pallet_dao_assets::Pallet::<T>::do_reserve(
+				asset_id.clone().into(),
+				&sender,
+				governance.proposal_token_deposit,
+			) {
 				CurrencyOf::<T>::unreserve(&sender, deposit);
 				Err(error)?;
 			};
@@ -141,16 +156,31 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
 
 			// check that the proposal is active
-			ensure!(
-				proposal.status == ProposalStatus::Active,
-				Error::<T>::ProposalIsNotActive
-			);
+			ensure!(proposal.status == ProposalStatus::Active, Error::<T>::ProposalIsNotActive);
 
 			// check if the proposal is still live (hardcoded duration in relation to the
 			// created event)
 
 			// store the vote
 			<Votes<T>>::insert(proposal_id, Vote { voter: sender, aye });
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn set_governance_majority_vote(
+			origin: OriginFor<T>,
+			dao_id: Vec<u8>,
+			proposal_duration: u32,
+			proposal_token_deposit: T::Balance,
+			minimum_majority_per_256: u8,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
+			let dao_id = dao.id;
+			ensure!(dao.owner == sender, DaoError::<T>::DaoSignerNotOwner);
+			let voting = Voting::Majority { minimum_majority_per_256 };
+			let gov = GovernanceOf::<T> { proposal_duration, proposal_token_deposit, voting };
+			<Governances<T>>::set(dao_id.clone(), Some(gov));
 			Ok(())
 		}
 	}

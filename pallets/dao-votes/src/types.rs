@@ -1,7 +1,9 @@
 use codec::MaxEncodedLen;
-use frame_support::{traits::ConstU32, BoundedVec, RuntimeDebug};
-
-use frame_support::codec::{Decode, Encode};
+use frame_support::{
+	codec::{Decode, Encode},
+	traits::ConstU32,
+	BoundedVec, RuntimeDebug,
+};
 use scale_info::TypeInfo;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]

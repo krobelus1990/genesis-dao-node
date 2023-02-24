@@ -18,7 +18,13 @@ fn it_creates_a_proposal() {
 
 		// cannot create a proposal without a DAO
 		assert_noop!(
-			DaoVotes::create_proposal(origin.clone(), dao_id.clone(), prop_id.clone(), metadata.clone(), hash.clone()),
+			DaoVotes::create_proposal(
+				origin.clone(),
+				dao_id.clone(),
+				prop_id.clone(),
+				metadata.clone(),
+				hash.clone()
+			),
 			DaoError::<Test>::DaoDoesNotExist
 		);
 
@@ -27,7 +33,13 @@ fn it_creates_a_proposal() {
 
 		// cannot create a proposal without DAO tokens existing (because they need to be reserved)
 		assert_noop!(
-			DaoVotes::create_proposal(origin.clone(), dao_id.clone(), prop_id.clone(), metadata.clone(), hash.clone()),
+			DaoVotes::create_proposal(
+				origin.clone(),
+				dao_id.clone(),
+				prop_id.clone(),
+				metadata.clone(),
+				hash.clone()
+			),
 			Error::<Test>::DaoTokenNotYetIssued
 		);
 
@@ -45,6 +57,30 @@ fn it_creates_a_proposal() {
 
 		let reserved_currency = CurrencyOf::<Test>::reserved_balance(sender);
 
+		// cannot create a proposal without a governance set
+		assert_noop!(
+			DaoVotes::create_proposal(
+				origin.clone(),
+				dao_id.clone(),
+				prop_id.clone(),
+				metadata.clone(),
+				hash.clone()
+			),
+			Error::<Test>::GovernanceNotSet
+		);
+
+		// preparation: set governance
+		let duration = 4200;
+		let token_deposit = 100;
+		let minimum_majority_per_256 = 3; // slightly more than 1 %
+		assert_ok!(DaoVotes::set_governance_majority_vote(
+			origin.clone(),
+			dao_id.clone(),
+			duration,
+			token_deposit,
+			minimum_majority_per_256
+		));
+
 		// test creating a proposal
 		assert_ok!(DaoVotes::create_proposal(origin, dao_id, prop_id.clone(), metadata, hash));
 
@@ -59,7 +95,7 @@ fn it_creates_a_proposal() {
 		);
 
 		// creating a proposal should reserve DAO tokens
-		assert_eq!(pallet_dao_assets::pallet::Pallet::<Test>::reserved(asset_id, sender), 1);
+		assert_eq!(pallet_dao_assets::pallet::Pallet::<Test>::reserved(asset_id, sender), token_deposit);
 	});
 }
 
@@ -85,8 +121,25 @@ fn it_creates_a_vote() {
 		assert_ok!(DaoCore::create_dao(origin.clone(), dao_id.clone(), dao_name));
 		// preparation: issue token
 		assert_ok!(DaoCore::issue_token(origin.clone(), dao_id.clone(), 1000));
+		// preparation: set governance
+		let duration = 4200;
+		let token_deposit = 100;
+		let minimum_majority_per_256 = 3; // slightly more than 1 %
+		assert_ok!(DaoVotes::set_governance_majority_vote(
+			origin.clone(),
+			dao_id.clone(),
+			duration,
+			token_deposit,
+			minimum_majority_per_256
+		));
 		// preparation: create a proposal
-		assert_ok!(DaoVotes::create_proposal(origin.clone(), dao_id, prop_id.clone(), metadata, hash));
+		assert_ok!(DaoVotes::create_proposal(
+			origin.clone(),
+			dao_id,
+			prop_id.clone(),
+			metadata,
+			hash
+		));
 
 		// test creating a vote
 		assert_ok!(DaoVotes::create_vote(origin, prop_id, true));
