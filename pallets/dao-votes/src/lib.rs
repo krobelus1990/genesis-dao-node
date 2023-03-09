@@ -73,7 +73,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		ProposalCreated { proposal_id: ProposalIdOf<T> },
-		//ProposalDestroyed,
+		ProposalFaulted { proposal_id: ProposalIdOf<T>, reason: Vec<u8> },
 		ProposalAccepted { proposal_id: ProposalIdOf<T> },
 		ProposalRejected { proposal_id: ProposalIdOf<T> },
 		VoteCast { proposal_id: ProposalIdOf<T>, voter: AccountIdOf<T> },
@@ -88,6 +88,7 @@ pub mod pallet {
 		ProposalIsNotActive,
 		ProposalDurationHasNotPassed,
 		ProposalDurationHasPassed,
+		SenderIsNotDaoOwner,
 	}
 
 	#[pallet::call]
@@ -150,8 +151,39 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
+		pub fn fault_proposal(
+			origin: OriginFor<T>,
+			proposal_id: Vec<u8>,
+			reason: Vec<u8>,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let proposal_id: BoundedVec<_, _> =
+				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
+
+			// check that a proposal exists with the given id
+			let mut proposal = <Proposals<T>>::try_get(proposal_id.clone())
+				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
+
+			// check that sender is owner of the DAO
+			ensure!(
+				sender == Core::<T>::get_dao(&proposal.dao_id).expect("DAO exists").owner,
+				Error::<T>::SenderIsNotDaoOwner
+			);
+
+			proposal.status = ProposalStatus::Faulty;
+			<Proposals<T>>::insert(proposal_id.clone(), proposal.clone());
+
+			// unreserve currency
+			CurrencyOf::<T>::unreserve(&proposal.creator, <T as Config>::ProposalDeposit::get());
+
+			Self::deposit_event(Event::<T>::ProposalFaulted { proposal_id, reason });
+
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
 		pub fn finalize_proposal(origin: OriginFor<T>, proposal_id: Vec<u8>) -> DispatchResult {
-			let _sender = ensure_signed(origin)?;
+			let sender = ensure_signed(origin)?;
 			let proposal_id: BoundedVec<_, _> =
 				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
@@ -209,6 +241,9 @@ pub mod pallet {
 
 			// record updated proposal status
 			<Proposals<T>>::insert(proposal_id.clone(), proposal.clone());
+
+			// unreserve currency
+			CurrencyOf::<T>::unreserve(&sender, <T as Config>::ProposalDeposit::get());
 
 			// emit event
 			Self::deposit_event(match proposal.status {
