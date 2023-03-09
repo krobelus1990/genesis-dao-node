@@ -54,9 +54,9 @@ pub mod constants;
 pub use constants::currency::{UNITS, Balance, deposit};
 
 /// Import the dao pallets ...
-pub use pallet_dao_core;
-
 pub use pallet_dao_assets;
+pub use pallet_dao_core;
+pub use pallet_dao_votes;
 
 /// An index to a block.
 pub type BlockNumber = u32;

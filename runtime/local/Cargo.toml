@@ -53,6 +53,7 @@ frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, g
 # Local Dependencies
 pallet-dao-core = { version = "4.0.0-dev", default-features = false, path = "../../pallets/dao-core" }
 pallet-dao-assets = { version = "4.0.0-dev", default-features = false,  path = "../../pallets/dao-assets" }
+pallet-dao-votes = { version = "4.0.0-dev", default-features = false,  path = "../../pallets/dao-votes" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.35" }
@@ -81,6 +82,7 @@ std = [
 	"pallet-multisig/std",
 	"pallet-dao-core/std",
 	"pallet-dao-assets/std",
+	"pallet-dao-votes/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
