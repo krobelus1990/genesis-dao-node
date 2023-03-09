@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use frame_support::{
-	sp_runtime::traits::{One, Saturating},
+	sp_runtime::traits::{One, Saturating, Zero},
 	storage::bounded_vec::BoundedVec,
 	traits::ReservableCurrency,
 };
@@ -19,8 +19,10 @@ pub use types::*;
 mod governance_types;
 use governance_types::*;
 
-use pallet_dao_assets::AssetBalanceOf;
-use pallet_dao_core::{CurrencyOf, DaoIdOf, DepositBalanceOf, Error as DaoError};
+use pallet_dao_assets::{AssetBalanceOf, Pallet as Assets};
+use pallet_dao_core::{
+	AccountIdOf, CurrencyOf, DaoIdOf, DepositBalanceOf, Error as DaoError, Pallet as Core,
+};
 
 type ProposalIdOf<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLengthId>;
 type ProposalOf<T> = Proposal<
@@ -30,7 +32,7 @@ type ProposalOf<T> = Proposal<
 	<T as frame_system::Config>::BlockNumber,
 	pallet_dao_core::MetadataOf<T>,
 >;
-type VoteOf<T> = Vote<<T as frame_system::Config>::AccountId>;
+
 type GovernanceOf<T, I = ()> = Governance<AssetBalanceOf<T, I>>;
 
 #[frame_support::pallet]
@@ -49,7 +51,8 @@ pub mod pallet {
 		StorageMap<_, Twox64Concat, ProposalIdOf<T>, ProposalOf<T>>;
 
 	#[pallet::storage]
-	pub(super) type Votes<T: Config> = StorageMap<_, Twox64Concat, ProposalIdOf<T>, VoteOf<T>>;
+	pub(super) type Votes<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, ProposalIdOf<T>, Twox64Concat, AccountIdOf<T>, bool>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
@@ -69,8 +72,11 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		ProposalCreated {},
+		ProposalCreated { proposal_id: ProposalIdOf<T> },
 		//ProposalDestroyed,
+		ProposalAccepted { proposal_id: ProposalIdOf<T> },
+		ProposalRejected { proposal_id: ProposalIdOf<T> },
+		VoteCast { proposal_id: ProposalIdOf<T>, voter: AccountIdOf<T> },
 	}
 
 	#[pallet::error]
@@ -80,6 +86,8 @@ pub mod pallet {
 		ProposalIdInvalidLengthTooLong,
 		ProposalDoesNotExist,
 		ProposalIsNotActive,
+		ProposalDurationHasNotPassed,
+		ProposalDurationHasPassed,
 	}
 
 	#[pallet::call]
@@ -88,7 +96,7 @@ pub mod pallet {
 		pub fn create_proposal(
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,
-			prop_id: Vec<u8>,
+			proposal_id: Vec<u8>,
 			meta: Vec<u8>,
 			hash: Vec<u8>,
 		) -> DispatchResult {
@@ -104,8 +112,8 @@ pub mod pallet {
 			let hash: BoundedVec<_, _> =
 				hash.try_into().map_err(|_| DaoError::<T>::HashInvalidWrongLength)?;
 
-			let prop_id: BoundedVec<_, _> =
-				prop_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
+			let proposal_id: BoundedVec<_, _> =
+				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			let deposit = <T as Config>::ProposalDeposit::get();
 
@@ -125,9 +133,9 @@ pub mod pallet {
 			let birth_block = <frame_system::Pallet<T>>::block_number();
 			// store the proposal
 			<Proposals<T>>::insert(
-				prop_id.clone(),
+				proposal_id.clone(),
 				Proposal {
-					id: prop_id,
+					id: proposal_id.clone(),
 					dao_id,
 					creator: sender,
 					birth_block,
@@ -137,17 +145,84 @@ pub mod pallet {
 				},
 			);
 			// emit an event
-			Self::deposit_event(Event::<T>::ProposalCreated {});
+			Self::deposit_event(Event::<T>::ProposalCreated { proposal_id });
 			Ok(())
 		}
 
 		#[pallet::weight(0)]
-		pub fn create_vote(
-			origin: OriginFor<T>,
-			proposal_id: Vec<u8>,
-			aye: bool,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
+		pub fn finalize_proposal(origin: OriginFor<T>, proposal_id: Vec<u8>) -> DispatchResult {
+			let _sender = ensure_signed(origin)?;
+			let proposal_id: BoundedVec<_, _> =
+				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
+
+			// check that a proposal exists with the given id
+			let mut proposal = <Proposals<T>>::try_get(proposal_id.clone())
+				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
+
+			// check that the proposal is currently active
+			ensure!(proposal.status == ProposalStatus::Active, Error::<T>::ProposalIsNotActive);
+
+			let governance =
+				<Governances<T>>::get(&proposal.dao_id).ok_or(Error::<T>::GovernanceNotSet)?;
+
+			// check that the proposal has run for its entire duration
+			ensure!(
+				<frame_system::Pallet<T>>::block_number() - proposal.birth_block >
+					governance.proposal_duration.into(),
+				Error::<T>::ProposalDurationHasNotPassed
+			);
+
+			let asset_id = Core::<T>::get_dao(&proposal.dao_id)
+				.expect("DAO exists")
+				.asset_id
+				.expect("asset has been issued");
+
+			// count votes
+			let mut votes_for: AssetBalanceOf<T, ()> = Zero::zero();
+			let mut votes_against: AssetBalanceOf<T, ()> = Zero::zero();
+			for (account_id, in_favor) in <Votes<T>>::iter_prefix(&proposal_id) {
+				let token_balance = Assets::<T>::total_balance(asset_id.into(), account_id);
+				if in_favor {
+					votes_for += token_balance;
+				} else {
+					votes_against += token_balance;
+				}
+			}
+
+			// determine whether proposal has required votes and set status accordingly
+			match governance.voting {
+				Voting::Majority { minimum_majority_per_256 } => {
+					if votes_for > votes_against && {
+						let token_supply = Assets::<T>::total_supply(asset_id.into());
+						let required_majority = token_supply /
+							Into::<AssetBalanceOf<T, ()>>::into(256_u32) *
+							minimum_majority_per_256.into();
+						// check for the required majority
+						votes_for - votes_against >= required_majority
+					} {
+						proposal.status = ProposalStatus::Accepted;
+					} else {
+						proposal.status = ProposalStatus::Rejected;
+					}
+				},
+			}
+
+			// record updated proposal status
+			<Proposals<T>>::insert(proposal_id.clone(), proposal.clone());
+
+			// emit event
+			Self::deposit_event(match proposal.status {
+				ProposalStatus::Accepted => Event::ProposalAccepted { proposal_id },
+				ProposalStatus::Rejected => Event::ProposalRejected { proposal_id },
+				_ => unreachable!(),
+			});
+
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn vote(origin: OriginFor<T>, proposal_id: Vec<u8>, in_favor: bool) -> DispatchResult {
+			let voter = ensure_signed(origin)?;
 			let proposal_id: BoundedVec<_, _> =
 				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
@@ -158,11 +233,18 @@ pub mod pallet {
 			// check that the proposal is active
 			ensure!(proposal.status == ProposalStatus::Active, Error::<T>::ProposalIsNotActive);
 
-			// check if the proposal is still live (hardcoded duration in relation to the
-			// created event)
+			let governance =
+				<Governances<T>>::get(&proposal.dao_id).ok_or(Error::<T>::GovernanceNotSet)?;
 
-			// store the vote
-			<Votes<T>>::insert(proposal_id, Vote { voter: sender, aye });
+			// check that the proposal has not yet run for its entire duration
+			ensure!(
+				<frame_system::Pallet<T>>::block_number() - proposal.birth_block <=
+					governance.proposal_duration.into(),
+				Error::<T>::ProposalDurationHasPassed
+			);
+
+			<Votes<T>>::insert(proposal_id.clone(), voter.clone(), in_favor);
+			Self::deposit_event(Event::<T>::VoteCast { proposal_id, voter });
 			Ok(())
 		}
 

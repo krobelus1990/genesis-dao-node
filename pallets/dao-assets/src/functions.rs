@@ -2,7 +2,6 @@
 
 use super::*;
 use frame_support::{traits::Get, BoundedVec};
-use frame_system::pallet_prelude::BlockNumberFor;
 use sp_std::borrow::Borrow;
 
 #[must_use]
@@ -22,6 +21,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		Self::maybe_balance(id, who).unwrap_or_default()
 	}
 
+	/// Get the asset `id` total (including reserved) balance of `who`, or zero if the asset-account doesn't exist.
+	pub fn total_balance(id: T::AssetId, who: impl Borrow<T::AccountId>) -> T::Balance {
+		Self::maybe_total_balance(id, who).unwrap_or_default()
+	}
+
 	/// Get the asset `id` reserved balance of `who`, or zero if the asset-account doesn't exist.
 	pub fn reserved(id: T::AssetId, who: impl Borrow<T::AccountId>) -> T::Balance {
 		Self::maybe_reserved(id, who).unwrap_or_default()
@@ -30,6 +34,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	/// Get the asset `id` free balance of `who` if the asset-account exists.
 	pub fn maybe_balance(id: T::AssetId, who: impl Borrow<T::AccountId>) -> Option<T::Balance> {
 		Account::<T, I>::get(id, who.borrow()).map(|a| a.balance)
+	}
+
+	/// Get the asset `id` total (including reserved) balance of `who` if the asset-account exists.
+	pub fn maybe_total_balance(id: T::AssetId, who: impl Borrow<T::AccountId>) -> Option<T::Balance> {
+		Account::<T, I>::get(id, who.borrow()).map(|a| a.balance + a.reserved)
 	}
 
 	/// Get the asset `id` reserved balance of `who` if the asset-account exists.

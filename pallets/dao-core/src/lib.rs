@@ -27,6 +27,7 @@ pub use frame_support::{
 	weights::Weight,
 };
 
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type CurrencyOf<T> = <T as Config>::Currency;
 pub type DepositBalanceOf<T> =
 	<CurrencyOf<T> as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -67,7 +68,9 @@ pub mod pallet {
 		type Currency: ReservableCurrency<Self::AccountId>;
 
 		type AssetId: IsType<<Self as pallet_dao_assets::Config>::AssetId>
+			+ Member
 			+ Parameter
+			+ Copy
 			+ Default
 			+ MaxEncodedLen
 			+ One
