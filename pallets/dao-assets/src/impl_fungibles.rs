@@ -2,20 +2,20 @@
 
 use super::*;
 
-impl<T: Config<I>, I: 'static> fungibles::Inspect<<T as SystemConfig>::AccountId> for Pallet<T, I> {
+impl<T: Config> fungibles::Inspect<<T as SystemConfig>::AccountId> for Pallet<T> {
 	type AssetId = T::AssetId;
 	type Balance = T::Balance;
 
 	fn total_issuance(asset: Self::AssetId) -> Self::Balance {
-		Asset::<T, I>::get(asset).map(|x| x.supply).unwrap_or_else(Zero::zero)
+		Asset::<T>::get(asset).map(|x| x.supply).unwrap_or_else(Zero::zero)
 	}
 
 	fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
-		Asset::<T, I>::get(asset).map(|x| x.min_balance).unwrap_or_else(Zero::zero)
+		Asset::<T>::get(asset).map(|x| x.min_balance).unwrap_or_else(Zero::zero)
 	}
 
 	fn balance(asset: Self::AssetId, who: &<T as SystemConfig>::AccountId) -> Self::Balance {
-		Pallet::<T, I>::balance(asset, who)
+		Pallet::<T>::balance(asset, who)
 	}
 
 	fn reducible_balance(
@@ -23,7 +23,7 @@ impl<T: Config<I>, I: 'static> fungibles::Inspect<<T as SystemConfig>::AccountId
 		who: &<T as SystemConfig>::AccountId,
 		keep_alive: bool,
 	) -> Self::Balance {
-		Pallet::<T, I>::reducible_balance(asset, who, keep_alive).unwrap_or(Zero::zero())
+		Pallet::<T>::reducible_balance(asset, who, keep_alive).unwrap_or(Zero::zero())
 	}
 
 	fn can_deposit(
@@ -32,7 +32,7 @@ impl<T: Config<I>, I: 'static> fungibles::Inspect<<T as SystemConfig>::AccountId
 		amount: Self::Balance,
 		mint: bool,
 	) -> DepositConsequence {
-		Pallet::<T, I>::can_increase(asset, who, amount, mint)
+		Pallet::<T>::can_increase(asset, who, amount, mint)
 	}
 
 	fn can_withdraw(
@@ -40,34 +40,32 @@ impl<T: Config<I>, I: 'static> fungibles::Inspect<<T as SystemConfig>::AccountId
 		who: &<T as SystemConfig>::AccountId,
 		amount: Self::Balance,
 	) -> WithdrawConsequence<Self::Balance> {
-		Pallet::<T, I>::can_decrease(asset, who, amount, false)
+		Pallet::<T>::can_decrease(asset, who, amount, false)
 	}
 
 	fn asset_exists(asset: Self::AssetId) -> bool {
-		Asset::<T, I>::contains_key(asset)
+		Asset::<T>::contains_key(asset)
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::InspectMetadata<<T as SystemConfig>::AccountId>
-	for Pallet<T, I>
-{
+impl<T: Config> fungibles::InspectMetadata<<T as SystemConfig>::AccountId> for Pallet<T> {
 	/// Return the name of an asset.
 	fn name(asset: &Self::AssetId) -> Vec<u8> {
-		Metadata::<T, I>::get(asset).name.to_vec()
+		Metadata::<T>::get(asset).name.to_vec()
 	}
 
 	/// Return the symbol of an asset.
 	fn symbol(asset: &Self::AssetId) -> Vec<u8> {
-		Metadata::<T, I>::get(asset).symbol.to_vec()
+		Metadata::<T>::get(asset).symbol.to_vec()
 	}
 
 	/// Return the decimals of an asset.
 	fn decimals(asset: &Self::AssetId) -> u8 {
-		Metadata::<T, I>::get(asset).decimals
+		Metadata::<T>::get(asset).decimals
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::Mutate<<T as SystemConfig>::AccountId> for Pallet<T, I> {
+impl<T: Config> fungibles::Mutate<<T as SystemConfig>::AccountId> for Pallet<T> {
 	fn mint_into(
 		asset: Self::AssetId,
 		who: &<T as SystemConfig>::AccountId,
@@ -95,7 +93,7 @@ impl<T: Config<I>, I: 'static> fungibles::Mutate<<T as SystemConfig>::AccountId>
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::Transfer<T::AccountId> for Pallet<T, I> {
+impl<T: Config> fungibles::Transfer<T::AccountId> for Pallet<T> {
 	fn transfer(
 		asset: Self::AssetId,
 		source: &T::AccountId,
@@ -108,12 +106,12 @@ impl<T: Config<I>, I: 'static> fungibles::Transfer<T::AccountId> for Pallet<T, I
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::Unbalanced<T::AccountId> for Pallet<T, I> {
+impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 	fn set_balance(_: Self::AssetId, _: &T::AccountId, _: Self::Balance) -> DispatchResult {
 		unreachable!("set_balance is not used if other functions are impl'd");
 	}
 	fn set_total_issuance(id: T::AssetId, amount: Self::Balance) {
-		Asset::<T, I>::mutate_exists(id, |maybe_asset| {
+		Asset::<T>::mutate_exists(id, |maybe_asset| {
 			if let Some(ref mut asset) = maybe_asset {
 				asset.supply = amount
 			}
@@ -155,7 +153,7 @@ impl<T: Config<I>, I: 'static> fungibles::Unbalanced<T::AccountId> for Pallet<T,
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::Create<T::AccountId> for Pallet<T, I> {
+impl<T: Config> fungibles::Create<T::AccountId> for Pallet<T> {
 	fn create(
 		id: T::AssetId,
 		admin: T::AccountId,
@@ -166,7 +164,7 @@ impl<T: Config<I>, I: 'static> fungibles::Create<T::AccountId> for Pallet<T, I> 
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::Destroy<T::AccountId> for Pallet<T, I> {
+impl<T: Config> fungibles::Destroy<T::AccountId> for Pallet<T> {
 	fn start_destroy(id: T::AssetId, maybe_check_owner: Option<T::AccountId>) -> DispatchResult {
 		Self::do_start_destroy(id, maybe_check_owner)
 	}
@@ -184,25 +182,21 @@ impl<T: Config<I>, I: 'static> fungibles::Destroy<T::AccountId> for Pallet<T, I>
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::metadata::Inspect<<T as SystemConfig>::AccountId>
-	for Pallet<T, I>
-{
+impl<T: Config> fungibles::metadata::Inspect<<T as SystemConfig>::AccountId> for Pallet<T> {
 	fn name(asset: T::AssetId) -> Vec<u8> {
-		Metadata::<T, I>::get(asset).name.to_vec()
+		Metadata::<T>::get(asset).name.to_vec()
 	}
 
 	fn symbol(asset: T::AssetId) -> Vec<u8> {
-		Metadata::<T, I>::get(asset).symbol.to_vec()
+		Metadata::<T>::get(asset).symbol.to_vec()
 	}
 
 	fn decimals(asset: T::AssetId) -> u8 {
-		Metadata::<T, I>::get(asset).decimals
+		Metadata::<T>::get(asset).decimals
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::metadata::Mutate<<T as SystemConfig>::AccountId>
-	for Pallet<T, I>
-{
+impl<T: Config> fungibles::metadata::Mutate<<T as SystemConfig>::AccountId> for Pallet<T> {
 	fn set(
 		asset: T::AssetId,
 		from: &<T as SystemConfig>::AccountId,
@@ -214,24 +208,20 @@ impl<T: Config<I>, I: 'static> fungibles::metadata::Mutate<<T as SystemConfig>::
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::approvals::Inspect<<T as SystemConfig>::AccountId>
-	for Pallet<T, I>
-{
+impl<T: Config> fungibles::approvals::Inspect<<T as SystemConfig>::AccountId> for Pallet<T> {
 	// Check the amount approved to be spent by an owner to a delegate
 	fn allowance(
 		asset: T::AssetId,
 		owner: &<T as SystemConfig>::AccountId,
 		delegate: &<T as SystemConfig>::AccountId,
 	) -> T::Balance {
-		Approvals::<T, I>::get((asset, &owner, &delegate))
+		Approvals::<T>::get((asset, &owner, &delegate))
 			.map(|x| x.amount)
 			.unwrap_or_else(Zero::zero)
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::approvals::Mutate<<T as SystemConfig>::AccountId>
-	for Pallet<T, I>
-{
+impl<T: Config> fungibles::approvals::Mutate<<T as SystemConfig>::AccountId> for Pallet<T> {
 	fn approve(
 		asset: T::AssetId,
 		owner: &<T as SystemConfig>::AccountId,
@@ -253,19 +243,17 @@ impl<T: Config<I>, I: 'static> fungibles::approvals::Mutate<<T as SystemConfig>:
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::roles::Inspect<<T as SystemConfig>::AccountId>
-	for Pallet<T, I>
-{
+impl<T: Config> fungibles::roles::Inspect<<T as SystemConfig>::AccountId> for Pallet<T> {
 	fn owner(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		Asset::<T, I>::get(asset).map(|x| x.owner)
+		Asset::<T>::get(asset).map(|x| x.owner)
 	}
 
 	fn issuer(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		Asset::<T, I>::get(asset).map(|x| x.issuer)
+		Asset::<T>::get(asset).map(|x| x.issuer)
 	}
 
 	fn admin(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		Asset::<T, I>::get(asset).map(|x| x.admin)
+		Asset::<T>::get(asset).map(|x| x.admin)
 	}
 
 	fn freezer(_asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
@@ -273,13 +261,13 @@ impl<T: Config<I>, I: 'static> fungibles::roles::Inspect<<T as SystemConfig>::Ac
 	}
 }
 
-impl<T: Config<I>, I: 'static> fungibles::InspectEnumerable<T::AccountId> for Pallet<T, I> {
-	type AssetsIterator = KeyPrefixIterator<<T as Config<I>>::AssetId>;
+impl<T: Config> fungibles::InspectEnumerable<T::AccountId> for Pallet<T> {
+	type AssetsIterator = KeyPrefixIterator<<T as Config>::AssetId>;
 
 	/// Returns an iterator of the assets in existence.
 	///
 	/// NOTE: iterating this list invokes a storage read per item.
 	fn asset_ids() -> Self::AssetsIterator {
-		Asset::<T, I>::iter_keys()
+		Asset::<T>::iter_keys()
 	}
 }

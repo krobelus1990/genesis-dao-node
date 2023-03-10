@@ -33,7 +33,7 @@ type ProposalOf<T> = Proposal<
 	pallet_dao_core::MetadataOf<T>,
 >;
 
-type GovernanceOf<T, I = ()> = Governance<AssetBalanceOf<T, I>>;
+type GovernanceOf<T> = Governance<AssetBalanceOf<T>>;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -210,8 +210,8 @@ pub mod pallet {
 				.expect("asset has been issued");
 
 			// count votes
-			let mut votes_for: AssetBalanceOf<T, ()> = Zero::zero();
-			let mut votes_against: AssetBalanceOf<T, ()> = Zero::zero();
+			let mut votes_for: AssetBalanceOf<T> = Zero::zero();
+			let mut votes_against: AssetBalanceOf<T> = Zero::zero();
 			for (account_id, in_favor) in <Votes<T>>::iter_prefix(&proposal_id) {
 				let token_balance = Assets::<T>::total_balance(asset_id.into(), account_id);
 				if in_favor {
@@ -227,7 +227,7 @@ pub mod pallet {
 					if votes_for > votes_against && {
 						let token_supply = Assets::<T>::total_supply(asset_id.into());
 						let required_majority = token_supply /
-							Into::<AssetBalanceOf<T, ()>>::into(256_u32) *
+							Into::<AssetBalanceOf<T>>::into(256_u32) *
 							minimum_majority_per_256.into();
 						// check for the required majority
 						votes_for - votes_against >= required_majority
