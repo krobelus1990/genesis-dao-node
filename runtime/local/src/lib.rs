@@ -348,6 +348,11 @@ impl pallet_dao_core::Config for Runtime {
 	type WeightInfo = pallet_dao_core::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_dao_votes::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type ProposalDeposit = ConstU128<1_000_000_000_000>;
+}
+
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -370,6 +375,7 @@ construct_runtime!(
 		DaoCore: pallet_dao_core,
 		Balances: pallet_balances,
 		Assets: pallet_dao_assets,
+		Votes: pallet_dao_votes,
 	}
 );
 
