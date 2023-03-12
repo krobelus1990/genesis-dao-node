@@ -10,16 +10,15 @@ use sp_runtime::{traits::Convert, FixedPointNumber, FixedPointOperand, FixedU128
 // Type alias for `frame_system`'s account id.
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 // This pallet's asset id and balance type.
-type AssetIdOf<T, I> = <T as Config<I>>::AssetId;
-pub type AssetBalanceOf<T, I> = <T as Config<I>>::Balance;
+type AssetIdOf<T> = <T as Config>::AssetId;
+pub type AssetBalanceOf<T> = <T as Config>::Balance;
 // Generic fungible balance type.
 pub type BalanceOf<F, T> = <F as fungible::Inspect<AccountIdOf<T>>>::Balance;
 // The deposit balance type
-pub type DepositBalanceOf<T, I> = <<T as Config<I>>::Currency as Currency<AccountIdOf<T>>>::Balance;
+pub type DepositBalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 // The account data for an asset
-pub type AssetAccountOf<T, I> = AssetAccount<AssetBalanceOf<T, I>, DepositBalanceOf<T, I>>;
-pub type AssetDetailsOf<T, I> =
-	AssetDetails<AssetBalanceOf<T, I>, AccountIdOf<T>, DepositBalanceOf<T, I>>;
+pub type AssetAccountOf<T> = AssetAccount<AssetBalanceOf<T>, DepositBalanceOf<T>>;
+pub type AssetDetailsOf<T> = AssetDetails<AssetBalanceOf<T>, AccountIdOf<T>, DepositBalanceOf<T>>;
 
 /// AssetStatus holds the current state of the asset. It could either be Live and available for use,
 /// or in a Destroying state.
@@ -167,16 +166,15 @@ pub enum ConversionError {
 
 /// Converts a balance value into an asset balance based on the ratio between the fungible's
 /// minimum balance and the minimum asset balance.
-pub struct BalanceToAssetBalance<F, T, CON, I = ()>(PhantomData<(F, T, CON, I)>);
-impl<F, T, CON, I> BalanceConversion<BalanceOf<F, T>, AssetIdOf<T, I>, AssetBalanceOf<T, I>>
-	for BalanceToAssetBalance<F, T, CON, I>
+pub struct BalanceToAssetBalance<F, T, CON>(PhantomData<(F, T, CON)>);
+impl<F, T, CON> BalanceConversion<BalanceOf<F, T>, AssetIdOf<T>, AssetBalanceOf<T>>
+	for BalanceToAssetBalance<F, T, CON>
 where
 	F: fungible::Inspect<AccountIdOf<T>>,
-	T: Config<I>,
-	I: 'static,
-	CON: Convert<BalanceOf<F, T>, AssetBalanceOf<T, I>>,
+	T: Config,
+	CON: Convert<BalanceOf<F, T>, AssetBalanceOf<T>>,
 	BalanceOf<F, T>: FixedPointOperand + Zero,
-	AssetBalanceOf<T, I>: FixedPointOperand + Zero,
+	AssetBalanceOf<T>: FixedPointOperand + Zero,
 {
 	type Error = ConversionError;
 
@@ -187,9 +185,9 @@ where
 	/// balance is zero.
 	fn to_asset_balance(
 		balance: BalanceOf<F, T>,
-		asset_id: AssetIdOf<T, I>,
-	) -> Result<AssetBalanceOf<T, I>, ConversionError> {
-		let asset = Asset::<T, I>::get(asset_id).ok_or(ConversionError::AssetMissing)?;
+		asset_id: AssetIdOf<T>,
+	) -> Result<AssetBalanceOf<T>, ConversionError> {
+		let asset = Asset::<T>::get(asset_id).ok_or(ConversionError::AssetMissing)?;
 		// only sufficient assets have a min balance with reliable value
 		ensure!(asset.is_sufficient, ConversionError::AssetNotSufficient);
 		let min_balance = CON::convert(F::minimum_balance());

@@ -1,7 +1,9 @@
 use codec::MaxEncodedLen;
-use frame_support::{traits::ConstU32, BoundedVec, RuntimeDebug};
-
-use frame_support::codec::{Decode, Encode};
+use frame_support::{
+	codec::{Decode, Encode},
+	traits::ConstU32,
+	BoundedVec, RuntimeDebug,
+};
 use scale_info::TypeInfo;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
@@ -15,17 +17,11 @@ pub struct Proposal<Id, DaoId, AccountId, BlockId, Metadata> {
 	pub status: ProposalStatus,
 }
 
-#[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct Vote<AccountId> {
-	pub voter: AccountId,
-	pub aye: bool,
-}
-
-#[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, Copy, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalStatus {
 	#[default]
 	Active,
-	Success,
-	Faulty,
+	Accepted,
 	Rejected,
+	Faulty,
 }

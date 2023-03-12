@@ -61,7 +61,7 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
-	pub struct Pallet<T, I = ()>(_);
+	pub struct Pallet<T>(_);
 
 	#[cfg(feature = "runtime-benchmarks")]
 	pub trait BenchmarkHelper<AssetIdParameter> {
@@ -77,10 +77,9 @@ pub mod pallet {
 
 	#[pallet::config]
 	/// The module configuration trait.
-	pub trait Config<I: 'static = ()>: frame_system::Config {
+	pub trait Config: frame_system::Config {
 		/// The overarching event type.
-		type RuntimeEvent: From<Event<Self, I>>
-			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The units in which we record balances.
 		type Balance: Member
@@ -131,25 +130,25 @@ pub mod pallet {
 
 		/// The basic amount of funds that must be reserved for an asset.
 		#[pallet::constant]
-		type AssetDeposit: Get<DepositBalanceOf<Self, I>>;
+		type AssetDeposit: Get<DepositBalanceOf<Self>>;
 
 		/// The amount of funds that must be reserved for a non-provider asset account to be
 		/// maintained.
 		#[pallet::constant]
-		type AssetAccountDeposit: Get<DepositBalanceOf<Self, I>>;
+		type AssetAccountDeposit: Get<DepositBalanceOf<Self>>;
 
 		/// The basic amount of funds that must be reserved when adding metadata to your asset.
 		#[pallet::constant]
-		type MetadataDepositBase: Get<DepositBalanceOf<Self, I>>;
+		type MetadataDepositBase: Get<DepositBalanceOf<Self>>;
 
 		/// The additional funds that must be reserved for the number of bytes you store in your
 		/// metadata.
 		#[pallet::constant]
-		type MetadataDepositPerByte: Get<DepositBalanceOf<Self, I>>;
+		type MetadataDepositPerByte: Get<DepositBalanceOf<Self>>;
 
 		/// The amount of funds that must be reserved when creating a new approval.
 		#[pallet::constant]
-		type ApprovalDeposit: Get<DepositBalanceOf<Self, I>>;
+		type ApprovalDeposit: Get<DepositBalanceOf<Self>>;
 
 		/// The maximum length of a name or symbol stored on-chain.
 		#[pallet::constant]
@@ -165,50 +164,50 @@ pub mod pallet {
 
 	#[pallet::storage]
 	/// Details of an asset.
-	pub type Asset<T: Config<I>, I: 'static = ()> = StorageMap<
+	pub type Asset<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat,
 		T::AssetId,
-		AssetDetails<T::Balance, T::AccountId, DepositBalanceOf<T, I>>,
+		AssetDetails<T::Balance, T::AccountId, DepositBalanceOf<T>>,
 	>;
 
 	#[pallet::storage]
 	/// The holdings of a specific account for a specific asset.
-	pub(super) type Account<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
+	pub(super) type Account<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
 		T::AssetId,
 		Blake2_128Concat,
 		T::AccountId,
-		AssetAccountOf<T, I>,
+		AssetAccountOf<T>,
 	>;
 
 	#[pallet::storage]
 	/// Approved balance transfers. First balance is the amount approved for transfer. Second
 	/// is the amount of `T::Currency` reserved for storing this.
 	/// First key is the asset ID, second key is the owner and third key is the delegate.
-	pub(super) type Approvals<T: Config<I>, I: 'static = ()> = StorageNMap<
+	pub(super) type Approvals<T: Config> = StorageNMap<
 		_,
 		(
 			NMapKey<Blake2_128Concat, T::AssetId>,
 			NMapKey<Blake2_128Concat, T::AccountId>, // owner
 			NMapKey<Blake2_128Concat, T::AccountId>, // delegate
 		),
-		Approval<T::Balance, DepositBalanceOf<T, I>>,
+		Approval<T::Balance, DepositBalanceOf<T>>,
 	>;
 
 	#[pallet::storage]
 	/// Metadata of an asset.
-	pub(super) type Metadata<T: Config<I>, I: 'static = ()> = StorageMap<
+	pub(super) type Metadata<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat,
 		T::AssetId,
-		AssetMetadata<DepositBalanceOf<T, I>, BoundedVec<u8, T::StringLimit>>,
+		AssetMetadata<DepositBalanceOf<T>, BoundedVec<u8, T::StringLimit>>,
 		ValueQuery,
 	>;
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
+	pub struct GenesisConfig<T: Config> {
 		/// Genesis assets: id, owner, is_sufficient, min_balance
 		pub assets: Vec<(T::AssetId, T::AccountId, bool, T::Balance)>,
 		/// Genesis metadata: id, name, symbol, decimals
@@ -218,7 +217,7 @@ pub mod pallet {
 	}
 
 	#[cfg(feature = "std")]
-	impl<T: Config<I>, I: 'static> Default for GenesisConfig<T, I> {
+	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
 				assets: Default::default(),
@@ -229,12 +228,12 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			for (id, owner, is_sufficient, min_balance) in &self.assets {
-				assert!(!Asset::<T, I>::contains_key(id), "Asset id already in use");
+				assert!(!Asset::<T>::contains_key(id), "Asset id already in use");
 				assert!(!min_balance.is_zero(), "Min balance should not be zero");
-				Asset::<T, I>::insert(
+				Asset::<T>::insert(
 					id,
 					AssetDetails {
 						owner: owner.clone(),
@@ -253,7 +252,7 @@ pub mod pallet {
 			}
 
 			for (id, name, symbol, decimals) in &self.metadata {
-				assert!(Asset::<T, I>::contains_key(id), "Asset does not exist");
+				assert!(Asset::<T>::contains_key(id), "Asset does not exist");
 
 				let bounded_name: BoundedVec<u8, T::StringLimit> =
 					name.clone().try_into().expect("asset name is too long");
@@ -266,11 +265,11 @@ pub mod pallet {
 					symbol: bounded_symbol,
 					decimals: *decimals,
 				};
-				Metadata::<T, I>::insert(id, metadata);
+				Metadata::<T>::insert(id, metadata);
 			}
 
 			for (id, account_id, amount) in &self.accounts {
-				let result = <Pallet<T, I>>::increase_balance(
+				let result = <Pallet<T>>::increase_balance(
 					*id,
 					account_id,
 					*amount,
@@ -290,7 +289,7 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config<I>, I: 'static = ()> {
+	pub enum Event<T: Config> {
 		/// Some asset class was created.
 		Created { asset_id: T::AssetId, creator: T::AccountId, owner: T::AccountId },
 		/// Some assets were issued.
@@ -349,7 +348,7 @@ pub mod pallet {
 	}
 
 	#[pallet::error]
-	pub enum Error<T, I = ()> {
+	pub enum Error<T> {
 		/// Account balance must be greater than or equal to the transfer amount.
 		BalanceLow,
 		/// The account to alter does not exist.
@@ -390,7 +389,7 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+	impl<T: Config> Pallet<T> {
 		/// Start the process of destroying a fungible asset class.
 		///
 		/// `start_destroy` is the first in a series of extrinsics that should be called, to allow
@@ -566,15 +565,15 @@ pub mod pallet {
 			let owner = T::Lookup::lookup(owner)?;
 			let id: T::AssetId = id.into();
 
-			Asset::<T, I>::try_mutate(id, |maybe_details| {
-				let details = maybe_details.as_mut().ok_or(Error::<T, I>::Unknown)?;
-				ensure!(details.status == AssetStatus::Live, Error::<T, I>::LiveAsset);
-				ensure!(origin == details.owner, Error::<T, I>::NoPermission);
+			Asset::<T>::try_mutate(id, |maybe_details| {
+				let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
+				ensure!(details.status == AssetStatus::Live, Error::<T>::LiveAsset);
+				ensure!(origin == details.owner, Error::<T>::NoPermission);
 				if details.owner == owner {
 					return Ok(())
 				}
 
-				let metadata_deposit = Metadata::<T, I>::get(id).deposit;
+				let metadata_deposit = Metadata::<T>::get(id).deposit;
 				let deposit = details.deposit + metadata_deposit;
 
 				// Move the deposit to the new owner.
@@ -611,10 +610,10 @@ pub mod pallet {
 			let admin = T::Lookup::lookup(admin)?;
 			let id: T::AssetId = id.into();
 
-			Asset::<T, I>::try_mutate(id, |maybe_details| {
-				let details = maybe_details.as_mut().ok_or(Error::<T, I>::Unknown)?;
-				ensure!(details.status == AssetStatus::Live, Error::<T, I>::AssetNotLive);
-				ensure!(origin == details.owner, Error::<T, I>::NoPermission);
+			Asset::<T>::try_mutate(id, |maybe_details| {
+				let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
+				ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
+				ensure!(origin == details.owner, Error::<T>::NoPermission);
 
 				details.issuer = issuer.clone();
 				details.admin = admin.clone();
@@ -671,12 +670,12 @@ pub mod pallet {
 			let origin = ensure_signed(origin)?;
 			let id: T::AssetId = id.into();
 
-			let d = Asset::<T, I>::get(id).ok_or(Error::<T, I>::Unknown)?;
-			ensure!(d.status == AssetStatus::Live, Error::<T, I>::AssetNotLive);
-			ensure!(origin == d.owner, Error::<T, I>::NoPermission);
+			let d = Asset::<T>::get(id).ok_or(Error::<T>::Unknown)?;
+			ensure!(d.status == AssetStatus::Live, Error::<T>::AssetNotLive);
+			ensure!(origin == d.owner, Error::<T>::NoPermission);
 
-			Metadata::<T, I>::try_mutate_exists(id, |metadata| {
-				let deposit = metadata.take().ok_or(Error::<T, I>::Unknown)?.deposit;
+			Metadata::<T>::try_mutate_exists(id, |metadata| {
+				let deposit = metadata.take().ok_or(Error::<T>::Unknown)?.deposit;
 				T::Currency::unreserve(&d.owner, deposit);
 				Self::deposit_event(Event::MetadataCleared { asset_id: id });
 				Ok(())
@@ -740,15 +739,15 @@ pub mod pallet {
 			let owner = ensure_signed(origin)?;
 			let delegate = T::Lookup::lookup(delegate)?;
 			let id: T::AssetId = id.into();
-			let mut d = Asset::<T, I>::get(id).ok_or(Error::<T, I>::Unknown)?;
-			ensure!(d.status == AssetStatus::Live, Error::<T, I>::AssetNotLive);
+			let mut d = Asset::<T>::get(id).ok_or(Error::<T>::Unknown)?;
+			ensure!(d.status == AssetStatus::Live, Error::<T>::AssetNotLive);
 
 			let approval =
-				Approvals::<T, I>::take((id, &owner, &delegate)).ok_or(Error::<T, I>::Unknown)?;
+				Approvals::<T>::take((id, &owner, &delegate)).ok_or(Error::<T>::Unknown)?;
 			T::Currency::unreserve(&owner, approval.deposit);
 
 			d.approvals.saturating_dec();
-			Asset::<T, I>::insert(id, d);
+			Asset::<T>::insert(id, d);
 
 			Self::deposit_event(Event::ApprovalCancelled { asset_id: id, owner, delegate });
 			Ok(())
