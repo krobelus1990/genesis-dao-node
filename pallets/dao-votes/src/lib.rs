@@ -1,5 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use sp_std::prelude::*;
+
 pub use frame_support::{
 	sp_runtime::traits::{One, Saturating, Zero},
 	storage::bounded_vec::BoundedVec,
