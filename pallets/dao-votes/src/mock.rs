@@ -96,6 +96,7 @@ impl pallet_dao_assets::Config for Test {
 	type ApprovalDeposit = ApprovalDeposit;
 	type RemoveItemsLimit = ConstU32<1000>;
 	type StringLimit = AssetsStringLimit;
+	type HistoryHorizon = ConstU32<4200>;
 	type WeightInfo = ();
 }
 

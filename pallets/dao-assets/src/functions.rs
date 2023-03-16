@@ -2,6 +2,7 @@
 
 use super::*;
 use frame_support::{traits::Get, BoundedVec};
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_std::borrow::Borrow;
 
 #[must_use]
@@ -58,6 +59,45 @@ impl<T: Config> Pallet<T> {
 	/// Get the total supply of an asset `id` if the asset exists.
 	pub fn maybe_total_supply(id: T::AssetId) -> Option<T::Balance> {
 		Asset::<T>::get(id).map(|x| x.supply)
+	}
+
+	/// Get the total historical supply of an asset `id` at a certain `block`.
+	/// Result may be None, if the age of the requested block is at or beyond
+	/// the HistoryHorizon and history has been removed.
+	pub fn total_historical_supply(id: T::AssetId, block: BlockNumberFor<T>) -> Option<T::Balance> {
+		let default = || {
+			let current_block = frame_system::Pallet::<T>::block_number();
+			if current_block - block < T::HistoryHorizon::get().into() {
+				Some(Zero::zero())
+			} else {
+				None
+			}
+		};
+
+		SupplyHistory::<T>::get(id).map_or_else(default, |history| {
+			history.range(..=block).next_back().map(|item| *item.1).or_else(default)
+		})
+	}
+
+	pub(super) fn update_supply_history(id: T::AssetId, supply: T::Balance) {
+		let mut history = SupplyHistory::<T>::get(id).unwrap_or_default();
+		let current_block = frame_system::Pallet::<T>::block_number();
+
+		// the oldest block for which we need to be able to retrieve history
+		let inner_horizon_block =
+			current_block.saturating_sub((T::HistoryHorizon::get() - 1).into());
+
+		// if there is enough history, find block that has history for inner_horizon_block
+		if let Some(block) = history.range(..=inner_horizon_block).next_back().map(|i| *i.0) {
+			// and remove everything older than that block
+			history = BoundedBTreeMap::try_from(history.into_inner().split_off(&block)).unwrap();
+		}
+
+		// insert new history item
+		history.try_insert(current_block, supply).expect("Enough space has been freed");
+
+		// record new history
+		SupplyHistory::<T>::insert(id, history);
 	}
 
 	pub(super) fn new_account(
@@ -322,7 +362,10 @@ impl<T: Config> Pallet<T> {
 				T::Balance::max_value() - details.supply >= amount,
 				"checked in prep; qed"
 			);
-			details.supply = details.supply.saturating_add(amount);
+			details.supply.saturating_accrue(amount);
+
+			Self::update_supply_history(id, details.supply);
+
 			Ok(())
 		})?;
 		Self::deposit_event(Event::Issued {
@@ -401,7 +444,9 @@ impl<T: Config> Pallet<T> {
 			}
 
 			debug_assert!(details.supply >= actual, "checked in prep; qed");
-			details.supply = details.supply.saturating_sub(actual);
+			details.supply.saturating_reduce(actual);
+
+			Self::update_supply_history(id, details.supply);
 
 			Ok(())
 		})?;
@@ -643,7 +688,7 @@ impl<T: Config> Pallet<T> {
 				owner: owner.clone(),
 				issuer: owner.clone(),
 				admin: owner.clone(),
-				supply: Zero::zero(),
+				supply: Zero::zero(), // no need to record a supply of zero in the SupplyHistory
 				deposit: Zero::zero(),
 				min_balance,
 				is_sufficient,
@@ -653,6 +698,7 @@ impl<T: Config> Pallet<T> {
 				status: AssetStatus::Live,
 			},
 		);
+
 		Self::deposit_event(Event::ForceCreated { asset_id: id, owner });
 		Ok(())
 	}
@@ -669,6 +715,7 @@ impl<T: Config> Pallet<T> {
 				ensure!(details.owner == check_owner, Error::<T>::NoPermission);
 			}
 			details.status = AssetStatus::Destroying;
+			SupplyHistory::<T>::remove(id);
 
 			Self::deposit_event(Event::DestructionStarted { asset_id: id });
 			Ok(())

@@ -18,10 +18,13 @@ fn asset_ids() -> Vec<u32> {
 #[test]
 fn basic_minting_should_work() {
 	new_test_ext().execute_with(|| {
+		assert_eq!(Assets::total_historical_supply(0, System::block_number()), Some(0));
 		assert_ok!(Assets::do_force_create(0, 1, true, 1));
 		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
+		assert_eq!(Assets::total_historical_supply(0, System::block_number()), Some(100));
 		assert_eq!(Assets::balance(0, 1), 100);
 		assert_ok!(Assets::do_mint(0, &2, 100, Some(1)));
+		assert_eq!(Assets::total_historical_supply(0, System::block_number()), Some(200));
 		assert_eq!(Assets::balance(0, 2), 100);
 		assert_eq!(asset_ids(), vec![0, 999]);
 	});
@@ -236,28 +239,29 @@ fn cancel_approval_works() {
 fn lifecycle_should_work() {
 	new_test_ext().execute_with(|| {
 		Balances::make_free_balance_be(&1, 100);
-		assert_ok!(Assets::do_force_create(0, 1, true, 1));
-		assert!(Asset::<Test>::contains_key(0));
+		let asset_id = 37;
+		assert_ok!(Assets::do_force_create(asset_id, 1, true, 1));
+		assert!(Asset::<Test>::contains_key(asset_id));
 
-		assert_ok!(Assets::set_metadata(RuntimeOrigin::signed(1), 0, vec![0], vec![0], 12));
+		assert_ok!(Assets::set_metadata(RuntimeOrigin::signed(1), asset_id, vec![0], vec![0], 12));
 		assert_eq!(Balances::reserved_balance(&1), 3);
-		assert!(Metadata::<Test>::contains_key(0));
+		assert!(Metadata::<Test>::contains_key(asset_id));
 
 		Balances::make_free_balance_be(&10, 100);
-		assert_ok!(Assets::do_mint(0, &10, 100, Some(1)));
+		assert_ok!(Assets::do_mint(asset_id, &10, 100, Some(1)));
 		Balances::make_free_balance_be(&20, 100);
-		assert_ok!(Assets::do_mint(0, &20, 100, Some(1)));
-		assert_eq!(Account::<Test>::iter_prefix(0).count(), 2);
+		assert_ok!(Assets::do_mint(asset_id, &20, 100, Some(1)));
+		assert_eq!(Account::<Test>::iter_prefix(asset_id).count(), 2);
 
-		assert_ok!(Assets::start_destroy(RuntimeOrigin::signed(1), 0));
-		assert_ok!(Assets::destroy_accounts(RuntimeOrigin::signed(1), 0));
-		assert_ok!(Assets::destroy_approvals(RuntimeOrigin::signed(1), 0));
-		assert_ok!(Assets::finish_destroy(RuntimeOrigin::signed(1), 0));
+		assert_ok!(Assets::start_destroy(RuntimeOrigin::signed(1), asset_id));
+		assert_ok!(Assets::destroy_accounts(RuntimeOrigin::signed(1), asset_id));
+		assert_ok!(Assets::destroy_approvals(RuntimeOrigin::signed(1), asset_id));
+		assert_ok!(Assets::finish_destroy(RuntimeOrigin::signed(1), asset_id));
 
 		assert_eq!(Balances::reserved_balance(&1), 0);
 
-		assert!(Asset::<Test>::get(0).unwrap().status == AssetStatus::Destroyed);
-		assert!(!Metadata::<Test>::contains_key(0));
+		assert!(Asset::<Test>::get(asset_id).unwrap().status == AssetStatus::Destroyed);
+		assert!(!Metadata::<Test>::contains_key(asset_id));
 		assert_eq!(Account::<Test>::iter_prefix(0).count(), 0);
 	});
 }
@@ -559,9 +563,11 @@ fn burning_asset_balance_with_positive_balance_should_work() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Assets::do_force_create(0, 1, true, 1));
 		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
+		assert_eq!(Assets::total_historical_supply(0, System::block_number()), Some(100));
 		assert_eq!(Assets::balance(0, 1), 100);
 		let flags = DebitFlags { keep_alive: false, best_effort: true };
 		let _ = Assets::do_burn(0, &1, u64::MAX, Some(1), flags);
+		assert_eq!(Assets::total_historical_supply(0, System::block_number()), Some(0));
 		assert_eq!(Assets::balance(0, 1), 0);
 	});
 }
@@ -799,5 +805,55 @@ fn reserving_and_unreserving_should_work() {
 		// check undoing reservation worked
 		assert_eq!(Assets::balance(999, 1), 100);
 		assert_eq!(Assets::reserved(999, 1), 0);
+	})
+}
+
+fn run_to_block(n: u64) {
+	use frame_support::traits::{OnFinalize, OnInitialize};
+	while System::block_number() < n {
+		let mut block = System::block_number();
+		Assets::on_finalize(block);
+		System::on_finalize(block);
+		System::reset_events();
+		block += 1;
+		System::set_block_number(block);
+		System::on_initialize(block);
+		Assets::on_initialize(block);
+	}
+}
+
+#[test]
+fn supply_history_query_historic_blocks_should_work() {
+	new_test_ext().execute_with(|| {
+		let asset_id = 95;
+		let account_id = 32;
+		let account_id2 = 974;
+		let amount = 345;
+		let burn_amount = 127;
+		let start_block = System::block_number();
+		let mut block = start_block;
+		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(0));
+		assert_ok!(Assets::do_force_create(asset_id, account_id, true, 1));
+		assert_ok!(Assets::do_mint(asset_id, &account_id, amount, None));
+		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(amount));
+		assert_ok!(Assets::do_mint(asset_id, &account_id2, amount, None));
+		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(2 * amount));
+		block += 5;
+		run_to_block(block);
+		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount));
+		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
+		let flags = DebitFlags { keep_alive: false, best_effort: false};
+		assert_ok!(Assets::do_burn(asset_id, &account_id2, burn_amount, None, flags));
+		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount));
+		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(2 * amount - burn_amount));
+		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
+		block += 19;
+		run_to_block(block);
+		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount - burn_amount));
+		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
+		assert_ok!(Assets::do_burn(asset_id, &account_id2, burn_amount, None, flags));
+		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount - burn_amount));
+		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(2 * amount - 2 * burn_amount));
+		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
 	})
 }
