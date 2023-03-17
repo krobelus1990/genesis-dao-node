@@ -102,8 +102,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		DaoCreated {
-			owner: T::AccountId,
 			dao_id: DaoIdOf<T>,
+			owner: T::AccountId,
 		},
 		DaoDestroyed {
 			dao_id: DaoIdOf<T>,
@@ -116,6 +116,10 @@ pub mod pallet {
 		DaoMetadataSet {
 			dao_id: DaoIdOf<T>,
 		},
+		DaoOwnerChanged {
+			dao_id: DaoIdOf<T>,
+			new_owner: T::AccountId,
+		}
 	}
 
 	#[pallet::error]
@@ -310,6 +314,25 @@ pub mod pallet {
 				dao.meta_hash = hash;
 				Ok(())
 			})
+		}
+
+		/// Change owner
+		///
+		/// - `dao_id`: the DAO to transfer ownership of
+		/// - `new_owner`: the new owner
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::set_metadata())]
+		pub fn change_owner(
+			origin: OriginFor<T>,
+			dao_id: Vec<u8>,
+			new_owner: T::AccountId,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let mut dao = Self::load_dao(dao_id)?;
+			ensure!(dao.owner == sender, Error::<T>::DaoSignerNotOwner);
+			dao.owner = new_owner.clone();
+			Self::deposit_event(Event::DaoOwnerChanged { dao_id: dao.id.clone(), new_owner });
+			<Daos<T>>::insert(dao.id.clone(), dao);
+			Ok(())
 		}
 	}
 }
