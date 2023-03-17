@@ -403,20 +403,21 @@ fn min_balance_should_work() {
 
 #[test]
 fn querying_total_supply_should_work() {
+	let asset_id = 7;
 	new_test_ext().execute_with(|| {
-		assert_ok!(Assets::do_force_create(0, 1, true, 1));
-		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
-		assert_eq!(Assets::balance(0, 1), 100);
-		assert_ok!(Assets::transfer(RuntimeOrigin::signed(1), 0, 2, 50));
-		assert_eq!(Assets::balance(0, 1), 50);
-		assert_eq!(Assets::balance(0, 2), 50);
-		assert_ok!(Assets::transfer(RuntimeOrigin::signed(2), 0, 3, 31));
-		assert_eq!(Assets::balance(0, 1), 50);
-		assert_eq!(Assets::balance(0, 2), 19);
-		assert_eq!(Assets::balance(0, 3), 31);
+		assert_ok!(Assets::do_force_create(asset_id, 1, true, 1));
+		assert_ok!(Assets::do_mint(asset_id, &1, 100, Some(1)));
+		assert_eq!(Assets::balance(asset_id, 1), 100);
+		assert_ok!(Assets::transfer(RuntimeOrigin::signed(1), asset_id, 2, 50));
+		assert_eq!(Assets::balance(asset_id, 1), 50);
+		assert_eq!(Assets::balance(asset_id, 2), 50);
+		assert_ok!(Assets::transfer(RuntimeOrigin::signed(2), asset_id, 3, 31));
+		assert_eq!(Assets::balance(asset_id, 1), 50);
+		assert_eq!(Assets::balance(asset_id, 2), 19);
+		assert_eq!(Assets::balance(asset_id, 3), 31);
 		let flags = DebitFlags { keep_alive: false, best_effort: true };
-		let _ = Assets::do_burn(0, &3, u64::MAX, Some(1), flags);
-		assert_eq!(Assets::total_supply(0), 69);
+		let _ = Assets::do_burn(asset_id, &3, u64::MAX, Some(1), flags);
+		assert_eq!(Assets::total_supply(asset_id), 69);
 	});
 }
 
@@ -823,37 +824,234 @@ fn run_to_block(n: u64) {
 }
 
 #[test]
-fn supply_history_query_historic_blocks_should_work() {
+fn query_historic_blocks_should_work() {
 	new_test_ext().execute_with(|| {
 		let asset_id = 95;
 		let account_id = 32;
 		let account_id2 = 974;
 		let amount = 345;
+		let amount2 = 9287734;
+		let transfer1 = 98;
+		let transfer2 = 629984;
 		let burn_amount = 127;
-		let start_block = System::block_number();
-		let mut block = start_block;
-		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(0));
+		let block0 = System::block_number();
+
+		let history = |block, supply, account, account2| {
+			assert_eq!(Assets::total_historical_supply(asset_id, block), Some(supply), "wrong supply");
+			assert_eq!(
+				Assets::total_historical_balance(asset_id, &account_id, block),
+				Some(account),
+				"wrong balance for first account"
+			);
+			assert_eq!(
+				Assets::total_historical_balance(asset_id, &account_id2, block),
+				Some(account2),
+				"wrong balance for second account"
+			);
+		};
+		let history_block0 = || {
+			history(block0, 0, 0, 0);
+		};
+		history_block0();
+
+		// create asset
 		assert_ok!(Assets::do_force_create(asset_id, account_id, true, 1));
+		history_block0();
+
+		// advance to block1
+		println!("advancing to block1");
+		let block1 = block0 + 3;
+		let check1 = block0 + 1;
+		run_to_block(block1);
+		history_block0();
+		history(block1, 0, 0, 0);
+
+		// mint into first account
+		println!("mint into first account");
 		assert_ok!(Assets::do_mint(asset_id, &account_id, amount, None));
-		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(amount));
-		assert_ok!(Assets::do_mint(asset_id, &account_id2, amount, None));
-		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(2 * amount));
-		block += 5;
-		run_to_block(block);
-		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount));
-		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
-		let flags = DebitFlags { keep_alive: false, best_effort: false};
-		assert_ok!(Assets::do_burn(asset_id, &account_id2, burn_amount, None, flags));
-		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount));
-		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(2 * amount - burn_amount));
-		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
-		block += 19;
-		run_to_block(block);
-		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount - burn_amount));
-		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
-		assert_ok!(Assets::do_burn(asset_id, &account_id2, burn_amount, None, flags));
-		assert_eq!(Assets::total_historical_supply(asset_id, block - 3), Some(2 * amount - burn_amount));
-		assert_eq!(Assets::total_historical_supply(asset_id, block), Some(2 * amount - 2 * burn_amount));
-		assert_eq!(Assets::total_historical_supply(asset_id, start_block), Some(2 * amount));
+
+		// history is up to date
+		let history_block1 = || {
+			history(block1, amount, amount, 0);
+		};
+		history_block1();
+
+		// history is preserved
+		let history_check1 = || {
+			history(check1, 0, 0, 0);
+		};
+		history_check1();
+		history_block0();
+
+		// advance to block2
+		println!("advancing to block2");
+		let block2 = block1 + 5;
+		let check2 = block1 + 3;
+		run_to_block(block2);
+		history_block0();
+		history_check1();
+		history_block1();
+		history(block2, amount, amount, 0);
+
+		// mint into second account
+		println!("mint into second account");
+		assert_ok!(Assets::do_mint(asset_id, &account_id2, amount2, None));
+
+		// history is up to date
+		let history_block2 = || {
+			history(block2, amount + amount2, amount, amount2);
+		};
+		history_block2();
+
+		// history is preserved
+		let history_check2 = || {
+			history(check2, amount, amount, 0);
+		};
+		history_check2();
+		history_block1();
+		history_check1();
+		history_block0();
+
+		// advance to block3
+		println!("advancing to block3");
+		let block3 = block2 + 8;
+		let check3 = block2 + 2;
+		run_to_block(block3);
+		history_block0();
+		history_check1();
+		history_block1();
+		history_check2();
+		history_block2();
+		history(block3, amount + amount2, amount, amount2);
+
+		// transfer from first account to second account
+		println!("transfer from first account to second account");
+		assert_ok!(Assets::transfer(
+			RuntimeOrigin::signed(account_id),
+			asset_id,
+			account_id2,
+			transfer1
+		));
+
+		// history is up to date
+		let history_block3 = || {
+			history(block3, amount + amount2, amount - transfer1, amount2 + transfer1);
+		};
+		history_block3();
+
+		// history is preserved
+		let history_check3 = || {
+			history(check3, amount + amount2, amount, amount2);
+		};
+		history_check3();
+		history_block2();
+		history_check2();
+		history_block1();
+		history_check1();
+		history_block0();
+
+		// advance to block4
+		println!("advancing to block4");
+		let block4 = block3 + 7;
+		let check4 = block3 + 6;
+		run_to_block(block4);
+		history_block0();
+		history_check1();
+		history_block1();
+		history_check2();
+		history_block2();
+		history_check3();
+		history_block3();
+		history(block4, amount + amount2, amount - transfer1, amount2 + transfer1);
+
+		// transfer from second account to first account
+		println!("transfer from second account to first account");
+		assert_ok!(Assets::transfer(
+			RuntimeOrigin::signed(account_id2),
+			asset_id,
+			account_id,
+			transfer2
+		));
+
+		// history is up to date
+		let history_block4 = || {
+			history(
+				block4,
+				amount + amount2,
+				amount - transfer1 + transfer2,
+				amount2 + transfer1 - transfer2,
+			);
+		};
+		history_block4();
+
+		// history is preserved
+		let history_check4 = || {
+			history(check4, amount + amount2, amount - transfer1, amount2 + transfer1);
+		};
+		history_check4();
+		history_block3();
+		history_check3();
+		history_block2();
+		history_check2();
+		history_block1();
+		history_check1();
+		history_block0();
+
+		// advance to block5
+		println!("advancing to block5");
+		let block5 = block4 + 4;
+		let check5 = block4 + 1;
+		run_to_block(block5);
+		history_block0();
+		history_check1();
+		history_block1();
+		history_check2();
+		history_block2();
+		history_check3();
+		history_block3();
+		history_check4();
+		history_block4();
+		history(
+			block5,
+			amount + amount2,
+			amount - transfer1 + transfer2,
+			amount2 + transfer1 - transfer2,
+		);
+
+		// burn from first account
+		println!("burn from first account");
+		let flags = DebitFlags { keep_alive: false, best_effort: false };
+		assert_ok!(Assets::do_burn(asset_id, &account_id, burn_amount, None, flags));
+
+		// history is up to date
+		let history_block5 = || {
+			history(
+				block5,
+				amount + amount2 - burn_amount,
+				amount - transfer1 + transfer2 - burn_amount,
+				amount2 + transfer1 - transfer2,
+			);
+		};
+		history_block5();
+
+		// history is preserved
+		let history_check5 = || {
+			history(
+				check5,
+				amount + amount2,
+				amount - transfer1 + transfer2,
+				amount2 + transfer1 - transfer2,
+			);
+		};
+		history_check5();
+		history_block4();
+		history_check4();
+		history_block3();
+		history_check3();
+		history_block2();
+		history_check2();
+		history_block1();
+		history_check1();
+		history_block0();
 	})
 }

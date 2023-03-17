@@ -222,6 +222,17 @@ pub mod pallet {
 		BoundedBTreeMap<BlockNumberFor<T>, AssetBalanceOf<T>, T::HistoryHorizon>,
 	>;
 
+	#[pallet::storage]
+	/// History for the total balance of each account for all assets.
+	pub(super) type AccountHistory<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AssetId,
+		Blake2_128Concat,
+		T::AccountId,
+		BoundedBTreeMap<BlockNumberFor<T>, AssetBalanceOf<T>, T::HistoryHorizon>,
+	>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		/// Genesis assets: id, owner, is_sufficient, min_balance
