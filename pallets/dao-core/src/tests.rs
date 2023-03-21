@@ -160,7 +160,12 @@ fn it_sets_metadata() {
 		let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
 
 		assert_noop!(
-			DaoCore::set_metadata(RuntimeOrigin::signed(1), b"NONE".to_vec(), metadata.clone(), hash.clone()),
+			DaoCore::set_metadata(
+				RuntimeOrigin::signed(1),
+				b"NONE".to_vec(),
+				metadata.clone(),
+				hash.clone()
+			),
 			Error::<Test>::DaoDoesNotExist
 		);
 
@@ -169,11 +174,44 @@ fn it_sets_metadata() {
 			b"GDAO".to_vec(),
 			b"Genesis DAO".to_vec()
 		));
-		assert_ok!(DaoCore::set_metadata(RuntimeOrigin::signed(1), b"GDAO".to_vec(), metadata.clone(), hash.clone()));
+		assert_ok!(DaoCore::set_metadata(
+			RuntimeOrigin::signed(1),
+			b"GDAO".to_vec(),
+			metadata.clone(),
+			hash.clone()
+		));
 
 		let dao = DaoCore::load_dao(b"GDAO".to_vec()).unwrap();
 
 		assert_eq!(dao.meta, metadata);
 		assert_eq!(dao.meta_hash, hash);
+	});
+}
+
+#[test]
+fn can_change_owner() {
+	new_test_ext().execute_with(|| {
+		let new_owner = 61;
+		assert_noop!(
+			DaoCore::change_owner(RuntimeOrigin::signed(1), b"NONE".to_vec(), new_owner),
+			Error::<Test>::DaoDoesNotExist
+		);
+
+		// create DAO
+		let creator = 1; // this account has sufficient balance to create a DAO
+		assert_ok!(DaoCore::create_dao(
+			RuntimeOrigin::signed(creator),
+			b"GDAO".to_vec(),
+			b"Genesis DAO".to_vec()
+		));
+
+		let dao = DaoCore::load_dao(b"GDAO".to_vec()).unwrap();
+		assert_eq!(dao.owner, creator);
+
+		// change owner
+		assert_ok!(DaoCore::change_owner(RuntimeOrigin::signed(1), b"GDAO".to_vec(), new_owner));
+
+		let dao = DaoCore::load_dao(b"GDAO".to_vec()).unwrap();
+		assert_eq!(dao.owner, new_owner);
 	});
 }
