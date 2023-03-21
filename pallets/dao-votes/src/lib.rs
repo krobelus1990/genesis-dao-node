@@ -74,11 +74,29 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		ProposalCreated { proposal_id: ProposalIdOf<T> },
-		ProposalFaulted { proposal_id: ProposalIdOf<T>, reason: Vec<u8> },
-		ProposalAccepted { proposal_id: ProposalIdOf<T> },
-		ProposalRejected { proposal_id: ProposalIdOf<T> },
-		VoteCast { proposal_id: ProposalIdOf<T>, voter: AccountIdOf<T> },
+		ProposalCreated {
+			proposal_id: ProposalIdOf<T>,
+		},
+		ProposalFaulted {
+			proposal_id: ProposalIdOf<T>,
+			reason: Vec<u8>,
+		},
+		ProposalAccepted {
+			proposal_id: ProposalIdOf<T>,
+		},
+		ProposalRejected {
+			proposal_id: ProposalIdOf<T>,
+		},
+		VoteCast {
+			proposal_id: ProposalIdOf<T>,
+			voter: AccountIdOf<T>,
+		},
+		SetGovernanceMajorityVote {
+			dao_id: DaoIdOf<T>,
+			proposal_duration: u32,
+			proposal_token_deposit: T::Balance,
+			minimum_majority_per_256: u8,
+		},
 	}
 
 	#[pallet::error]
@@ -300,6 +318,12 @@ pub mod pallet {
 			let voting = Voting::Majority { minimum_majority_per_256 };
 			let gov = GovernanceOf::<T> { proposal_duration, proposal_token_deposit, voting };
 			<Governances<T>>::set(dao_id.clone(), Some(gov));
+			Self::deposit_event(Event::<T>::SetGovernanceMajorityVote {
+				dao_id,
+				proposal_duration,
+				proposal_token_deposit,
+				minimum_majority_per_256,
+			});
 			Ok(())
 		}
 	}
