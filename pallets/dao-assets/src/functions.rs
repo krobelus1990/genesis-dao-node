@@ -444,7 +444,7 @@ impl<T: Config> Pallet<T> {
 			};
 			account.balance.saturating_accrue(amount);
 			ensure!(account.balance >= details.min_balance, TokenError::BelowMinimum);
-			Self::update_account_history(id, beneficiary, account.balance);
+			Self::update_account_history(id, beneficiary, account.balance + account.reserved);
 			Account::<T>::insert(id, beneficiary, account);
 			Ok(())
 		})?;
@@ -523,7 +523,7 @@ impl<T: Config> Pallet<T> {
 				debug_assert!(account.balance.is_zero(), "checked in prep; qed");
 				return Ok(())
 			};
-			Self::update_account_history(id, target, account.balance);
+			Self::update_account_history(id, target, account.balance + account.reserved);
 			Account::<T>::insert(id, target, account);
 			Ok(())
 		})?;
@@ -553,8 +553,8 @@ impl<T: Config> Pallet<T> {
 			debug_assert!(account.balance >= actual, "checked in prep; qed");
 
 			// Make the reservation.
-			account.balance = account.balance.saturating_sub(actual);
-			account.reserved = account.reserved.saturating_add(actual);
+			account.balance.saturating_reduce(actual);
+			account.reserved.saturating_accrue(actual);
 			*maybe_account = Some(account);
 			Ok(())
 		})?;
@@ -655,7 +655,7 @@ impl<T: Config> Pallet<T> {
 			// Calculate new balance; this will not saturate since it's already checked in prep.
 			debug_assert!(account.balance.checked_add(&credit).is_some(), "checked in prep; qed");
 			account.balance.saturating_accrue(credit);
-			Self::update_account_history(id, dest, account.balance);
+			Self::update_account_history(id, dest, account.balance + account.reserved);
 			Account::<T>::insert(id, dest, account);
 
 			// Remove source account if it's now dead.
@@ -667,7 +667,7 @@ impl<T: Config> Pallet<T> {
 					return Ok(())
 				}
 			}
-			Self::update_account_history(id, source, source_account.balance);
+			Self::update_account_history(id, source, source_account.balance + source_account.reserved);
 			Account::<T>::insert(id, source, &source_account);
 			Ok(())
 		})?;
