@@ -292,7 +292,11 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn vote(origin: OriginFor<T>, proposal_id: Vec<u8>, in_favor: bool) -> DispatchResult {
+		pub fn vote(
+			origin: OriginFor<T>,
+			proposal_id: Vec<u8>,
+			in_favor: Option<bool>,
+		) -> DispatchResult {
 			let voter = ensure_signed(origin)?;
 			let proposal_id: BoundedVec<_, _> =
 				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
@@ -314,7 +318,7 @@ pub mod pallet {
 				Error::<T>::ProposalDurationHasPassed
 			);
 
-			<Votes<T>>::insert(proposal_id.clone(), voter.clone(), in_favor);
+			<Votes<T>>::set(proposal_id.clone(), voter.clone(), in_favor);
 			Self::deposit_event(Event::<T>::VoteCast { proposal_id, voter });
 			Ok(())
 		}
