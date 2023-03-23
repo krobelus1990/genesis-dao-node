@@ -72,7 +72,7 @@ fn can_create_a_proposal() {
 		// preparation: set governance
 		let duration = 4200;
 		let token_deposit = 100;
-		let minimum_majority_per_1024 = 3; // slightly less than 1 %
+		let minimum_majority_per_1024 = 10; // slightly less than 1 %
 		assert_ok!(DaoVotes::set_governance_majority_vote(
 			origin.clone(),
 			dao_id.clone(),
@@ -128,7 +128,7 @@ fn can_cast_and_remove_a_vote() {
 		// preparation: set governance
 		let duration = 4200;
 		let token_deposit = 100;
-		let minimum_majority_per_1024 = 3; // slightly less than 1 %
+		let minimum_majority_per_1024 = 10; // slightly less than 1 %
 		assert_ok!(DaoVotes::set_governance_majority_vote(
 			origin.clone(),
 			dao_id.clone(),
@@ -275,7 +275,7 @@ fn can_finalize_a_proposal() {
 		// preparation: set governance
 		let duration = 1;
 		let token_deposit = 100;
-		let minimum_majority_per_1024 = 3; // slightly less than 1 %
+		let minimum_majority_per_1024 = 10; // slightly less than 1 %
 		assert_ok!(DaoVotes::set_governance_majority_vote(
 			origin.clone(),
 			dao_id.clone(),
