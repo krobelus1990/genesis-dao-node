@@ -99,7 +99,7 @@ pub mod pallet {
 			dao_id: DaoIdOf<T>,
 			proposal_duration: u32,
 			proposal_token_deposit: T::Balance,
-			minimum_majority_per_256: u8,
+			minimum_majority_per_1024: u8,
 		},
 		Delegation {
 			dao_id: DaoIdOf<T>,
@@ -284,7 +284,7 @@ pub mod pallet {
 
 			// determine whether proposal has required votes and set status accordingly
 			match governance.voting {
-				Voting::Majority { minimum_majority_per_256 } => {
+				Voting::Majority { minimum_majority_per_1024 } => {
 					if votes_for > votes_against && {
 						let token_supply = Assets::<T>::total_historical_supply(
 							asset_id.into(),
@@ -292,8 +292,8 @@ pub mod pallet {
 						)
 						.expect("History exists (horizon checked above)");
 						let required_majority = token_supply /
-							Into::<AssetBalanceOf<T>>::into(256_u32) *
-							minimum_majority_per_256.into();
+							Into::<AssetBalanceOf<T>>::into(1024_u32) *
+							minimum_majority_per_1024.into();
 						// check for the required majority
 						votes_for - votes_against >= required_majority
 					} {
@@ -372,20 +372,20 @@ pub mod pallet {
 			dao_id: Vec<u8>,
 			proposal_duration: u32,
 			proposal_token_deposit: T::Balance,
-			minimum_majority_per_256: u8,
+			minimum_majority_per_1024: u8,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
 			let dao_id = dao.id;
 			ensure!(dao.owner == sender, DaoError::<T>::DaoSignerNotOwner);
-			let voting = Voting::Majority { minimum_majority_per_256 };
+			let voting = Voting::Majority { minimum_majority_per_1024 };
 			let gov = GovernanceOf::<T> { proposal_duration, proposal_token_deposit, voting };
 			<Governances<T>>::set(dao_id.clone(), Some(gov));
 			Self::deposit_event(Event::<T>::SetGovernanceMajorityVote {
 				dao_id,
 				proposal_duration,
 				proposal_token_deposit,
-				minimum_majority_per_256,
+				minimum_majority_per_1024,
 			});
 			Ok(())
 		}
