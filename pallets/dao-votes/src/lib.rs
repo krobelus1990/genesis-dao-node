@@ -117,7 +117,6 @@ pub mod pallet {
 		ProposalDurationHasNotPassed,
 		ProposalDurationHasPassed,
 		SenderIsNotDaoOwner,
-		HistoryHorizonHasPassed,
 	}
 
 	#[pallet::call]
@@ -233,75 +232,76 @@ pub mod pallet {
 				Error::<T>::ProposalDurationHasNotPassed
 			);
 
-			// check that there is definitely enough history
-			ensure!(
-				current_block - proposal.birth_block < T::HistoryHorizon::get().into(),
-				Error::<T>::HistoryHorizonHasPassed
-			);
+			// set proposal status to rejected, then check if it should be accepted
+			proposal.status = ProposalStatus::Rejected;
 
-			let asset_id = Core::<T>::get_dao(&proposal.dao_id)
-				.expect("DAO exists")
-				.asset_id
-				.expect("asset has been issued");
+			if current_block - proposal.birth_block >= T::HistoryHorizon::get().into() {
+				proposal.status = ProposalStatus::Rejected;
+			} else {
+				// there is definitely enough history
+				let asset_id = Core::<T>::get_dao(&proposal.dao_id)
+					.expect("DAO exists")
+					.asset_id
+					.expect("asset has been issued");
 
-			// count votes
-			let mut votes_for: AssetBalanceOf<T> = Zero::zero();
-			let mut votes_against: AssetBalanceOf<T> = Zero::zero();
-			for (account_id, in_favor) in <Votes<T>>::iter_prefix(&proposal_id) {
-				let token_balance = Assets::<T>::total_historical_balance(
-					asset_id.into(),
-					account_id,
-					proposal.birth_block,
-				)
-				.expect("History exists (horizon checked above)");
-				if in_favor {
-					votes_for += token_balance;
-				} else {
-					votes_against += token_balance;
+				// count votes
+				let mut votes_for: AssetBalanceOf<T> = Zero::zero();
+				let mut votes_against: AssetBalanceOf<T> = Zero::zero();
+				for (account_id, in_favor) in <Votes<T>>::iter_prefix(&proposal_id) {
+					let token_balance = Assets::<T>::total_historical_balance(
+						asset_id.into(),
+						account_id,
+						proposal.birth_block,
+					)
+					.expect("History exists (horizon checked above)");
+					if in_favor {
+						votes_for += token_balance;
+					} else {
+						votes_against += token_balance;
+					}
 				}
-			}
 
-			// count delegated votes that have not already been counted as direct votes
-			for (account_id, delegatee) in <Delegations<T>>::iter_prefix(&proposal.dao_id) {
-				// the delegatee needs to have voted
-				if let Some(in_favor) = <Votes<T>>::get(&proposal_id, &delegatee) {
-					// the account should not have voted as normal votes have already been counted
-					if !<Votes<T>>::contains_key(&proposal_id, &account_id) {
-						let token_balance = Assets::<T>::total_historical_balance(
-							asset_id.into(),
-							account_id,
-							proposal.birth_block,
-						)
-						.expect("History exists (horizon checked above)");
-						if in_favor {
-							votes_for += token_balance;
-						} else {
-							votes_against += token_balance;
+				// count delegated votes that have not already been counted as direct votes
+				for (account_id, delegatee) in <Delegations<T>>::iter_prefix(&proposal.dao_id) {
+					// the delegatee needs to have voted
+					if let Some(in_favor) = <Votes<T>>::get(&proposal_id, &delegatee) {
+						// the account should not have voted as normal votes have already been
+						// counted
+						if !<Votes<T>>::contains_key(&proposal_id, &account_id) {
+							let token_balance = Assets::<T>::total_historical_balance(
+								asset_id.into(),
+								account_id,
+								proposal.birth_block,
+							)
+							.expect("History exists (horizon checked above)");
+							if in_favor {
+								votes_for += token_balance;
+							} else {
+								votes_against += token_balance;
+							}
 						}
 					}
 				}
-			}
 
-			// determine whether proposal has required votes and set status accordingly
-			match governance.voting {
-				Voting::Majority { minimum_majority_per_1024 } => {
-					if votes_for > votes_against && {
-						let token_supply = Assets::<T>::total_historical_supply(
-							asset_id.into(),
-							proposal.birth_block,
-						)
-						.expect("History exists (horizon checked above)");
-						let required_majority = token_supply /
-							Into::<AssetBalanceOf<T>>::into(1024_u32) *
-							minimum_majority_per_1024.into();
-						// check for the required majority
-						votes_for - votes_against >= required_majority
-					} {
-						proposal.status = ProposalStatus::Accepted;
-					} else {
-						proposal.status = ProposalStatus::Rejected;
-					}
-				},
+				// determine whether proposal has required votes and set status accordingly
+				match governance.voting {
+					Voting::Majority { minimum_majority_per_1024 } => {
+						if votes_for > votes_against && {
+							let token_supply = Assets::<T>::total_historical_supply(
+								asset_id.into(),
+								proposal.birth_block,
+							)
+							.expect("History exists (horizon checked above)");
+							let required_majority = token_supply /
+								Into::<AssetBalanceOf<T>>::into(1024_u32) *
+								minimum_majority_per_1024.into();
+							// check for the required majority
+							votes_for - votes_against >= required_majority
+						} {
+							proposal.status = ProposalStatus::Accepted;
+						}
+					},
+				}
 			}
 
 			// record updated proposal status
