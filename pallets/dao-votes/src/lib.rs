@@ -56,6 +56,10 @@ pub mod pallet {
 	pub(super) type Votes<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, ProposalIdOf<T>, Twox64Concat, AccountIdOf<T>, bool>;
 
+	#[pallet::storage]
+	pub(super) type Delegations<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, DaoIdOf<T>, Twox64Concat, AccountIdOf<T>, AccountIdOf<T>>;
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(_);
@@ -96,6 +100,10 @@ pub mod pallet {
 			proposal_duration: u32,
 			proposal_token_deposit: T::Balance,
 			minimum_majority_per_256: u8,
+		},
+		Delegation {
+			dao_id: DaoIdOf<T>,
+			delegator: AccountIdOf<T>,
 		},
 	}
 
@@ -253,6 +261,27 @@ pub mod pallet {
 				}
 			}
 
+			// count delegated votes that have not already been counted as direct votes
+			for (account_id, delegatee) in <Delegations<T>>::iter_prefix(&proposal.dao_id) {
+				// the delegatee needs to have voted
+				if let Some(in_favor) = <Votes<T>>::get(&proposal_id, &delegatee) {
+					// the account should not have voted as normal votes have already been counted
+					if !<Votes<T>>::contains_key(&proposal_id, &account_id) {
+						let token_balance = Assets::<T>::total_historical_balance(
+							asset_id.into(),
+							account_id,
+							proposal.birth_block,
+						)
+						.expect("History exists (horizon checked above)");
+						if in_favor {
+							votes_for += token_balance;
+						} else {
+							votes_against += token_balance;
+						}
+					}
+				}
+			}
+
 			// determine whether proposal has required votes and set status accordingly
 			match governance.voting {
 				Voting::Majority { minimum_majority_per_256 } => {
@@ -292,7 +321,11 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn vote(origin: OriginFor<T>, proposal_id: Vec<u8>, in_favor: bool) -> DispatchResult {
+		pub fn vote(
+			origin: OriginFor<T>,
+			proposal_id: Vec<u8>,
+			in_favor: Option<bool>,
+		) -> DispatchResult {
 			let voter = ensure_signed(origin)?;
 			let proposal_id: BoundedVec<_, _> =
 				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
@@ -314,8 +347,22 @@ pub mod pallet {
 				Error::<T>::ProposalDurationHasPassed
 			);
 
-			<Votes<T>>::insert(proposal_id.clone(), voter.clone(), in_favor);
+			<Votes<T>>::set(&proposal_id, &voter, in_favor);
 			Self::deposit_event(Event::<T>::VoteCast { proposal_id, voter });
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn delegate(
+			origin: OriginFor<T>,
+			dao_id: Vec<u8>,
+			to: Option<AccountIdOf<T>>,
+		) -> DispatchResult {
+			let delegator = ensure_signed(origin)?;
+			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
+			let dao_id = dao.id;
+			<Delegations<T>>::set(&dao_id, &delegator, to);
+			Self::deposit_event(Event::<T>::Delegation { dao_id, delegator });
 			Ok(())
 		}
 

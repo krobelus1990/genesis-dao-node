@@ -1,4 +1,4 @@
-use crate::{mock::*, types::*, Config, Error, Proposals};
+use crate::{mock::*, types::*, Config, Delegations, Error, Proposals, Votes};
 use frame_support::{assert_noop, assert_ok, traits::TypedGet, BoundedVec};
 use frame_system::ensure_signed;
 use pallet_dao_core::{CurrencyOf, Error as DaoError};
@@ -103,12 +103,13 @@ fn can_create_a_proposal() {
 }
 
 #[test]
-fn can_vote() {
+fn can_cast_and_remove_a_vote() {
 	new_test_ext().execute_with(|| {
 		let dao_id = b"DAO".to_vec();
 		let dao_name = b"TEST DAO".to_vec();
 		let prop_id = b"PROP".to_vec();
-		let origin = RuntimeOrigin::signed(1);
+		let voter = 1;
+		let origin = RuntimeOrigin::signed(voter);
 
 		let metadata = b"http://my.cool.proposal".to_vec();
 		// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
@@ -116,7 +117,7 @@ fn can_vote() {
 
 		// cannot create a vote without a proposal
 		assert_noop!(
-			DaoVotes::vote(origin.clone(), prop_id.clone(), true),
+			DaoVotes::vote(origin.clone(), prop_id.clone(), None),
 			Error::<Test>::ProposalDoesNotExist
 		);
 
@@ -144,8 +145,47 @@ fn can_vote() {
 			hash
 		));
 
+		let vote = true;
+		let bounded_prop_id: BoundedVec<_, _> = prop_id.clone().try_into().unwrap();
+
 		// test creating a vote
-		assert_ok!(DaoVotes::vote(origin, prop_id, true));
+		assert!(!<Votes<Test>>::contains_key(&bounded_prop_id, voter));
+		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), Some(vote)));
+		assert_eq!(<Votes<Test>>::get(&bounded_prop_id, voter), Some(vote));
+
+		// test removing the same vote
+		assert_ok!(DaoVotes::vote(origin, prop_id, None));
+		assert!(!<Votes<Test>>::contains_key(&bounded_prop_id, voter));
+	});
+}
+
+#[test]
+fn can_set_and_remove_a_delegation() {
+	new_test_ext().execute_with(|| {
+		let dao_id = b"DAO".to_vec();
+		let dao_name = b"TEST DAO".to_vec();
+		let delegator = 1;
+		let delegatee = 2;
+		let origin = RuntimeOrigin::signed(delegator);
+
+		// cannot create a delegation without a DAO
+		assert_noop!(
+			DaoVotes::delegate(origin.clone(), dao_id.clone(), Some(delegatee)),
+			DaoError::<Test>::DaoDoesNotExist
+		);
+
+		// preparation: create a DAO
+		assert_ok!(DaoCore::create_dao(origin.clone(), dao_id.clone(), dao_name));
+		let bounded_dao_id: BoundedVec<_, _> = dao_id.clone().try_into().unwrap();
+
+		// test creating a delegation
+		assert!(!<Delegations<Test>>::contains_key(&bounded_dao_id, delegator));
+		assert_ok!(DaoVotes::delegate(origin.clone(), dao_id.clone(), Some(delegatee)));
+		assert_eq!(<Delegations<Test>>::get(&bounded_dao_id, delegator), Some(delegatee));
+
+		// test removing the same vote
+		assert_ok!(DaoVotes::delegate(origin, dao_id, None));
+		assert!(!<Delegations<Test>>::contains_key(&bounded_dao_id, delegator));
 	});
 }
 
@@ -310,8 +350,8 @@ fn voting_outcome_unsuccessful_proposal() {
 		let voter = 2;
 		//dbg!(Assets::balance(origin
 		assert_ok!(Assets::transfer(origin.clone(), 1, voter, 500));
-		assert_ok!(DaoVotes::vote(RuntimeOrigin::signed(voter), prop_id.clone(), true));
-		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), false));
+		assert_ok!(DaoVotes::vote(RuntimeOrigin::signed(voter), prop_id.clone(), Some(true)));
+		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), Some(false)));
 
 		let block = System::block_number() + 1 + duration as u64;
 		run_to_block(block);
@@ -358,8 +398,8 @@ fn voting_outcome_successful_proposal() {
 		));
 		let voter = 2;
 		assert_ok!(Assets::transfer(origin.clone(), 1, voter, 501));
-		assert_ok!(DaoVotes::vote(RuntimeOrigin::signed(voter), prop_id.clone(), true));
-		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), false));
+		assert_ok!(DaoVotes::vote(RuntimeOrigin::signed(voter), prop_id.clone(), Some(true)));
+		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), Some(false)));
 
 		let block = System::block_number() + 1 + duration as u64;
 		run_to_block(block);
