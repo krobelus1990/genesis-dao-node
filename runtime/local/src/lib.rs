@@ -327,7 +327,7 @@ impl pallet_dao_assets::Config for Runtime {
 	type ApprovalDeposit = ApprovalDeposit;
 	type RemoveItemsLimit = ConstU32<1000>;
 	type StringLimit = AssetsStringLimit;
-	type HistoryHorizon = ConstU32<5000>;
+	type HistoryHorizon = ConstU32<{5*144000}>; // a day is 14400 blocks of 6s
 	type WeightInfo = ();
 	type AssetAccountDeposit = AssetAccountDeposit;
 
