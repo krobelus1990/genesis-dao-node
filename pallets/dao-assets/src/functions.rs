@@ -345,40 +345,6 @@ impl<T: Config> Pallet<T> {
 		Ok((credit, maybe_burn))
 	}
 
-	/// Creates an account for `who` to hold asset `id` with a zero balance and takes a deposit.
-	pub(super) fn do_touch(id: T::AssetId, who: T::AccountId) -> DispatchResult {
-		ensure!(!Account::<T>::contains_key(id, &who), Error::<T>::AlreadyExists);
-		let deposit = T::AssetAccountDeposit::get();
-		let mut details = Asset::<T>::get(id).ok_or(Error::<T>::Unknown)?;
-		ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
-		T::Currency::reserve(&who, deposit)?;
-		let reason = Self::new_account(&who, &mut details, Some(deposit))?;
-		Asset::<T>::insert(id, details);
-		Account::<T>::insert(
-			id,
-			&who,
-			AssetAccountOf::<T> { balance: Zero::zero(), reserved: Zero::zero(), reason },
-		);
-		Ok(())
-	}
-
-	/// Returns a deposit, destroying an asset-account.
-	pub(super) fn do_refund(id: T::AssetId, who: T::AccountId) -> DispatchResult {
-		let mut account = Account::<T>::get(id, &who).ok_or(Error::<T>::NoDeposit)?;
-		let deposit = account.reason.take_deposit().ok_or(Error::<T>::NoDeposit)?;
-		let mut details = Asset::<T>::get(id).ok_or(Error::<T>::Unknown)?;
-		ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
-		ensure!(account.balance.is_zero(), Error::<T>::WouldBurn);
-
-		T::Currency::unreserve(&who, deposit);
-
-		details.accounts.saturating_dec();
-		Account::<T>::remove(id, &who);
-
-		Asset::<T>::insert(id, details);
-		Ok(())
-	}
-
 	/// Increases the asset `id` balance of `beneficiary` by `amount`.
 	///
 	/// This alters the registered supply of the asset and emits an event.

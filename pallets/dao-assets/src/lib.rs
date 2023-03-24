@@ -814,35 +814,5 @@ pub mod pallet {
 			let id: T::AssetId = id.into();
 			Self::do_transfer_approved(id, &owner, &delegate, &destination, amount)
 		}
-
-		/// Create an asset account for non-provider assets.
-		///
-		/// A deposit will be taken from the signer account.
-		///
-		/// - `origin`: Must be Signed; the signer account must have sufficient funds for a deposit
-		///   to be taken.
-		/// - `id`: The identifier of the asset for the account to be created.
-		///
-		/// Emits `Touched` event when successful.
-		#[pallet::call_index(26)]
-		#[pallet::weight(T::WeightInfo::mint())]
-		pub fn touch(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
-			let id: T::AssetId = id.into();
-			Self::do_touch(id, ensure_signed(origin)?)
-		}
-
-		/// Return the deposit (if any) of an asset account.
-		///
-		/// The origin must be Signed.
-		///
-		/// - `id`: The identifier of the asset for the account to be created.
-		///
-		/// Emits `Refunded` event when successful.
-		#[pallet::call_index(27)]
-		#[pallet::weight(T::WeightInfo::mint())]
-		pub fn refund(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
-			let id: T::AssetId = id.into();
-			Self::do_refund(id, ensure_signed(origin)?)
-		}
 	}
 }

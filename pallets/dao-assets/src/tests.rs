@@ -49,67 +49,6 @@ fn minting_too_many_insufficient_assets_fails() {
 }
 
 #[test]
-fn minting_insufficient_asset_with_deposit_should_work_when_consumers_exhausted() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(Assets::do_force_create(0, 1, false, 1));
-		assert_ok!(Assets::do_force_create(1, 1, false, 1));
-		assert_ok!(Assets::do_force_create(2, 1, false, 1));
-		Balances::make_free_balance_be(&1, 100);
-		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
-		assert_ok!(Assets::do_mint(1, &1, 100, Some(1)));
-		assert_noop!(Assets::do_mint(2, &1, 100, Some(1)), TokenError::CannotCreate);
-
-		assert_ok!(Assets::touch(RuntimeOrigin::signed(1), 2));
-		assert_eq!(Balances::reserved_balance(&1), 10);
-
-		assert_ok!(Assets::do_mint(2, &1, 100, Some(1)));
-	});
-}
-
-#[test]
-fn minting_insufficient_assets_with_deposit_without_consumer_should_work() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(Assets::do_force_create(0, 1, false, 1));
-		assert_noop!(Assets::do_mint(0, &1, 100, Some(1)), TokenError::CannotCreate);
-		Balances::make_free_balance_be(&1, 100);
-		assert_ok!(Assets::touch(RuntimeOrigin::signed(1), 0));
-		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
-		assert_eq!(Balances::reserved_balance(&1), 10);
-		assert_eq!(System::consumers(&1), 0);
-	});
-}
-
-#[test]
-fn refunding_asset_deposit_with_nonzero_balance_should_fail() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(Assets::do_force_create(0, 1, false, 1));
-		Balances::make_free_balance_be(&1, 100);
-		assert_ok!(Assets::touch(RuntimeOrigin::signed(1), 0));
-		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
-		assert_noop!(Assets::refund(RuntimeOrigin::signed(1), 0), Error::<Test>::WouldBurn);
-	});
-}
-
-#[test]
-fn refunding_asset_deposit_with_zero_balance_should_work() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(Assets::do_force_create(0, 1, false, 1));
-		assert_noop!(Assets::do_mint(0, &1, 100, Some(1)), TokenError::CannotCreate);
-		Balances::make_free_balance_be(&1, 100);
-		assert_ok!(Assets::touch(RuntimeOrigin::signed(1), 0));
-		assert_ok!(Assets::do_mint(0, &1, 100, Some(1)));
-		Balances::make_free_balance_be(&2, 100);
-		assert_ok!(Assets::transfer(RuntimeOrigin::signed(1), 0, 2, 100));
-		assert_eq!(Assets::balance(0, 2), 100);
-		assert_eq!(Assets::balance(0, 1), 0);
-		assert_eq!(Balances::reserved_balance(&1), 10);
-		assert_ok!(Assets::refund(RuntimeOrigin::signed(1), 0));
-		assert_eq!(Balances::reserved_balance(&1), 0);
-		assert_eq!(Assets::balance(1, 0), 0);
-	});
-}
-
-#[test]
 fn approval_lifecycle_works() {
 	new_test_ext().execute_with(|| {
 		// can't approve non-existent token
