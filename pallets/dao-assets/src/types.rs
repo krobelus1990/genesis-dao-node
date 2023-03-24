@@ -82,21 +82,6 @@ pub enum ExistenceReason<Balance> {
 	DepositRefunded,
 }
 
-impl<Balance> ExistenceReason<Balance> {
-	pub(crate) fn take_deposit(&mut self) -> Option<Balance> {
-		if !matches!(self, ExistenceReason::DepositHeld(_)) {
-			return None
-		}
-		if let ExistenceReason::DepositHeld(deposit) =
-			sp_std::mem::replace(self, ExistenceReason::DepositRefunded)
-		{
-			Some(deposit)
-		} else {
-			None
-		}
-	}
-}
-
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub struct AssetAccount<Balance, DepositBalance> {
 	/// Free balance.
