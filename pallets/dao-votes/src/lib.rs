@@ -109,6 +109,7 @@ pub mod pallet {
 		ProposalDurationHasNotPassed,
 		ProposalDurationHasPassed,
 		SenderIsNotDaoOwner,
+		HistoryHorizonHasPassed,
 	}
 
 	#[pallet::call]
@@ -143,7 +144,7 @@ pub mod pallet {
 
 			// reserve DAO token, but unreserve currency if that fails
 			if let Err(error) = pallet_dao_assets::Pallet::<T>::do_reserve(
-				asset_id.clone().into(),
+				asset_id.into(),
 				&sender,
 				governance.proposal_token_deposit,
 			) {
@@ -217,11 +218,17 @@ pub mod pallet {
 			let governance =
 				<Governances<T>>::get(&proposal.dao_id).ok_or(Error::<T>::GovernanceNotSet)?;
 
+			let current_block = <frame_system::Pallet<T>>::block_number();
 			// check that the proposal has run for its entire duration
 			ensure!(
-				<frame_system::Pallet<T>>::block_number() - proposal.birth_block >
-					governance.proposal_duration.into(),
+				current_block - proposal.birth_block > governance.proposal_duration.into(),
 				Error::<T>::ProposalDurationHasNotPassed
+			);
+
+			// check that there is definitely enough history
+			ensure!(
+				current_block - proposal.birth_block < T::HistoryHorizon::get().into(),
+				Error::<T>::HistoryHorizonHasPassed
 			);
 
 			let asset_id = Core::<T>::get_dao(&proposal.dao_id)
@@ -233,7 +240,12 @@ pub mod pallet {
 			let mut votes_for: AssetBalanceOf<T> = Zero::zero();
 			let mut votes_against: AssetBalanceOf<T> = Zero::zero();
 			for (account_id, in_favor) in <Votes<T>>::iter_prefix(&proposal_id) {
-				let token_balance = Assets::<T>::total_balance(asset_id.into(), account_id);
+				let token_balance = Assets::<T>::total_historical_balance(
+					asset_id.into(),
+					account_id,
+					proposal.birth_block,
+				)
+				.expect("History exists (horizon checked above)");
 				if in_favor {
 					votes_for += token_balance;
 				} else {
@@ -245,7 +257,11 @@ pub mod pallet {
 			match governance.voting {
 				Voting::Majority { minimum_majority_per_256 } => {
 					if votes_for > votes_against && {
-						let token_supply = Assets::<T>::total_supply(asset_id.into());
+						let token_supply = Assets::<T>::total_historical_supply(
+							asset_id.into(),
+							proposal.birth_block,
+						)
+						.expect("History exists (horizon checked above)");
 						let required_majority = token_supply /
 							Into::<AssetBalanceOf<T>>::into(256_u32) *
 							minimum_majority_per_256.into();

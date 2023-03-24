@@ -42,6 +42,7 @@ use frame_support::{
 		BalanceStatus::Reserved,
 		Currency, EnsureOriginWithArg, ReservableCurrency,
 	},
+	BoundedBTreeMap,
 };
 use frame_system::Config as SystemConfig;
 
@@ -154,6 +155,12 @@ pub mod pallet {
 		#[pallet::constant]
 		type StringLimit: Get<u32>;
 
+		/// The age for which historical data may be removed.
+		/// For example, if this is 100 and the current block is 150,
+		/// then history for blocks 50 and older may be removed.
+		#[pallet::constant]
+		type HistoryHorizon: Get<u32>;
+
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 
@@ -204,6 +211,26 @@ pub mod pallet {
 		T::AssetId,
 		AssetMetadata<DepositBalanceOf<T>, BoundedVec<u8, T::StringLimit>>,
 		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	/// History for the total supply across all accounts.
+	pub(super) type SupplyHistory<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::AssetId,
+		BoundedBTreeMap<BlockNumberFor<T>, AssetBalanceOf<T>, T::HistoryHorizon>,
+	>;
+
+	#[pallet::storage]
+	/// History for the total balance of each account for all assets.
+	pub(super) type AccountHistory<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AssetId,
+		Blake2_128Concat,
+		T::AccountId,
+		BoundedBTreeMap<BlockNumberFor<T>, AssetBalanceOf<T>, T::HistoryHorizon>,
 	>;
 
 	#[pallet::genesis_config]
