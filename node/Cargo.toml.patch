@@ -1,0 +1,53 @@
+--- ../../substrate-node-template/node/Cargo.toml	2023-03-29 09:44:37.869879520 +0200
++++ Cargo.toml	2023-03-29 10:53:39.744766682 +0200
+@@ -1,20 +1,21 @@
+ [package]
+-name = "node-template"
++name = "genesis-dao"
+ version = "4.0.0-dev"
+-description = "A fresh FRAME-based Substrate node, ready for hacking."
+-authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
+-homepage = "https://substrate.io/"
++description = "DAO as a Service"
++authors = ["chp <chp@deep-ink.ventures>"]
++homepage = "https://deep-ink.ventures"
+ edition = "2021"
+ license = "Unlicense"
+ publish = false
+-repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
++# todo
++repository = "https://github.com/shredding/genesis-dao"
+ build = "build.rs"
+ 
+ [package.metadata.docs.rs]
+ targets = ["x86_64-unknown-linux-gnu"]
+ 
+ [[bin]]
+-name = "node-template"
++name = "genesis-dao"
+ 
+ [dependencies]
+ clap = { version = "4.0.9", features = ["derive"] }
+@@ -61,4 +62,4 @@
+ # Local Dependencies
+-node-template-runtime = { version = "4.0.0-dev", path = "../runtime" }
++local-runtime = { version = "4.0.0-dev", path = "../runtime/local", optional = true }
+ 
+ # CLI-specific dependencies
+@@ -70,11 +71,13 @@
+ [features]
+-default = []
++default = ["local-node"]
++local-node = ["local-runtime"]
++
+ # Dependencies that are only required if runtime benchmarking should be build.
+ runtime-benchmarks = [
+-	"node-template-runtime/runtime-benchmarks",
++	"local-runtime/runtime-benchmarks",
+ 	"frame-benchmarking/runtime-benchmarks",
+ 	"frame-benchmarking-cli/runtime-benchmarks",
+ ]
+ # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
+ # in the near future.
+-try-runtime = ["node-template-runtime/try-runtime", "try-runtime-cli/try-runtime"]
++try-runtime = ["local-runtime/try-runtime", "try-runtime-cli/try-runtime"]

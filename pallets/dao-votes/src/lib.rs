@@ -61,7 +61,6 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, DaoIdOf<T>, Twox64Concat, AccountIdOf<T>, AccountIdOf<T>>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
@@ -121,6 +120,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		pub fn create_proposal(
 			origin: OriginFor<T>,
@@ -178,6 +178,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
 		pub fn fault_proposal(
 			origin: OriginFor<T>,
@@ -209,6 +210,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(3)]
 		#[pallet::weight(0)]
 		pub fn finalize_proposal(origin: OriginFor<T>, proposal_id: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -320,6 +322,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(4)]
 		#[pallet::weight(0)]
 		pub fn vote(
 			origin: OriginFor<T>,
@@ -352,6 +355,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(5)]
 		#[pallet::weight(0)]
 		pub fn delegate(
 			origin: OriginFor<T>,
@@ -366,6 +370,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(6)]
 		#[pallet::weight(0)]
 		pub fn set_governance_majority_vote(
 			origin: OriginFor<T>,

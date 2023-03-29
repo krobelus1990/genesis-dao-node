@@ -1,0 +1,168 @@
+--- ../../../../substrate-node-template/runtime/src/lib.rs	2023-03-29 09:44:37.872879520 +0200
++++ lib.rs	2023-03-29 14:33:21.245407575 +0200
+@@ -27,7 +27,7 @@
+ pub use frame_support::{
+ 	construct_runtime, parameter_types,
+ 	traits::{
+-		ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo,
++		AsEnsureOriginWithArg, ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo,
+ 	},
+ 	weights::{
+ 		constants::{
+@@ -45,8 +45,10 @@
+ pub use sp_runtime::BuildStorage;
+ pub use sp_runtime::{Perbill, Permill};
+ 
+-/// Import the template pallet.
+-pub use pallet_template;
++/// Import the DAO pallets ...
++pub use pallet_dao_assets;
++pub use pallet_dao_core;
++pub use pallet_dao_votes;
+ 
+ /// An index to a block.
+ pub type BlockNumber = u32;
+@@ -61,6 +63,15 @@
+ /// Balance of an account.
+ pub type Balance = u128;
+ 
++pub const UNITS: Balance = 1_000_000_000_000;
++pub const MILLICENTS: Balance = 1_000_000_000;
++pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
++pub const DOLLARS: Balance = 100 * CENTS;
++
++pub const fn deposit(items: u32, bytes: u32) -> Balance {
++	items as Balance * 15 * CENTS + bytes as Balance * 6 * CENTS
++}
++
+ /// Index of a transaction in the chain.
+ pub type Index = u32;
+ 
+@@ -95,8 +106,8 @@
+ // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
+ #[sp_version::runtime_version]
+ pub const VERSION: RuntimeVersion = RuntimeVersion {
+-	spec_name: create_runtime_str!("node-template"),
+-	impl_name: create_runtime_str!("node-template"),
++	spec_name: create_runtime_str!("genesis-dao"),
++	impl_name: create_runtime_str!("genesis-dao"),
+ 	authoring_version: 1,
+ 	// The version of the runtime specification. A full node will not attempt to use its native
+ 	//   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
+@@ -245,6 +256,23 @@
+ 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+ }
+ 
++// these values come from
++// https://github.com/AcalaNetwork/Acala/blob/master/runtime/acala/src/lib.rs
++parameter_types! {
++	pub MultisigDepositBase: Balance = deposit(1, 88);
++	pub MultisigDepositFactor: Balance = deposit(0, 32);
++}
++
++impl pallet_multisig::Config for Runtime {
++    type RuntimeEvent = RuntimeEvent;
++    type RuntimeCall = RuntimeCall;
++    type Currency = Balances;
++    type DepositBase = MultisigDepositBase;
++    type DepositFactor = MultisigDepositFactor;
++    type MaxSignatories = ConstU32<100>;
++    type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
++}
++
+ parameter_types! {
+ 	pub FeeMultiplier: Multiplier = Multiplier::one();
+ }
+@@ -263,9 +291,64 @@
+ 	type RuntimeCall = RuntimeCall;
+ }
+ 
+-/// Configure the pallet-template in pallets/template.
+-impl pallet_template::Config for Runtime {
++impl pallet_utility::Config for Runtime {
+ 	type RuntimeEvent = RuntimeEvent;
++	type RuntimeCall = RuntimeCall;
++	type PalletsOrigin = OriginCaller;
++	type WeightInfo = ();
++}
++
++// Configure the DAO pallets ...
++parameter_types! {
++	pub const AssetDeposit: Balance = 10 * UNITS; // 10 UNITS deposit to create fungible asset class
++	pub const AssetAccountDeposit: Balance = deposit(1, 16);
++	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
++	pub const AssetsStringLimit: u32 = 50;
++	pub const MetadataDepositBase: Balance = deposit(1, 68);
++	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
++}
++
++// DAO assets
++impl pallet_dao_assets::Config for Runtime {
++	type RuntimeEvent = RuntimeEvent;
++	type Balance = Balance;
++	type AssetId = u32;
++	type AssetIdParameter = u32;
++	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
++	type Currency = Balances;
++	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
++	type AssetDeposit = AssetDeposit;
++	type MetadataDepositBase = MetadataDepositBase;
++	type MetadataDepositPerByte = MetadataDepositPerByte;
++	type ApprovalDeposit = ApprovalDeposit;
++	type RemoveItemsLimit = ConstU32<1000>;
++	type StringLimit = AssetsStringLimit;
++	type HistoryHorizon = ConstU32<5000>;
++	type WeightInfo = ();
++	type AssetAccountDeposit = AssetAccountDeposit;
++
++	#[cfg(feature = "runtime-benchmarks")]
++	type BenchmarkHelper = ();
++}
++
++// DAO core
++impl pallet_dao_core::Config for Runtime {
++	type RuntimeEvent = RuntimeEvent;
++	type MinLength = ConstU32<3>;
++	type MaxLengthId = ConstU32<8>;
++	type MaxLengthName = ConstU32<32>;
++	type MaxLengthMetadata = ConstU32<256>;
++	type Currency = Balances;
++	type DaoDeposit = ConstU128<{10 * UNITS}>;
++	type TokenUnits = ConstU8<9>;
++	type AssetId = u32;
++	type WeightInfo = pallet_dao_core::weights::SubstrateWeight<Runtime>;
++}
++
++// DAO votes
++impl pallet_dao_votes::Config for Runtime {
++	type RuntimeEvent = RuntimeEvent;
++	type ProposalDeposit = ConstU128<UNITS>;
+ }
+ 
+ // Create the runtime by composing the FRAME pallets that were previously configured.
+@@ -283,8 +366,12 @@
+ 		Balances: pallet_balances,
+ 		TransactionPayment: pallet_transaction_payment,
+ 		Sudo: pallet_sudo,
+-		// Include the custom logic from the pallet-template in the runtime.
+-		TemplateModule: pallet_template,
++		Utility: pallet_utility,
++		Multisig: pallet_multisig,
++		// Include the custom logic from the DAO pallets in the runtime.
++		DaoCore: pallet_dao_core,
++		Assets: pallet_dao_assets,
++		Votes: pallet_dao_votes,
+ 	}
+ );
+ 
+@@ -331,7 +418,9 @@
+ 		[frame_system, SystemBench::<Runtime>]
+ 		[pallet_balances, Balances]
+ 		[pallet_timestamp, Timestamp]
+-		[pallet_template, TemplateModule]
++		[pallet_dao_assets, Assets]
++		[pallet_dao_core, DaoCore]
++		[pallet_dao_votes, DaoVotes]
+ 	);
+ }
+ 
