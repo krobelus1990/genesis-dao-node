@@ -66,14 +66,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn create_dao() -> Weight {
-		Weight::from_ref_time(167_000_000_u64)
+		Weight::from_parts(167_000_000_u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn destroy_dao() -> Weight {
-		Weight::from_ref_time(183_000_000_u64)
+		Weight::from_parts(183_000_000_u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -84,14 +84,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: Assets Metadata (r:1 w:1)
 	#[rustfmt::skip]
 	fn issue_token() -> Weight {
-		Weight::from_ref_time(363_000_000_u64)
+		Weight::from_parts(363_000_000_u64, 0)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn set_metadata() -> Weight {
-		Weight::from_ref_time(161_000_000_u64)
+		Weight::from_parts(161_000_000_u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -102,14 +102,14 @@ impl WeightInfo for () {
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn create_dao() -> Weight {
-		Weight::from_ref_time(167_000_000_u64)
+		Weight::from_parts(167_000_000_u64, 0)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn destroy_dao() -> Weight {
-		Weight::from_ref_time(183_000_000_u64)
+		Weight::from_parts(183_000_000_u64, 0)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
@@ -120,14 +120,14 @@ impl WeightInfo for () {
 	// Storage: Assets Metadata (r:1 w:1)
 	#[rustfmt::skip]
 	fn issue_token() -> Weight {
-		Weight::from_ref_time(363_000_000_u64)
+		Weight::from_parts(363_000_000_u64, 0)
 			.saturating_add(RocksDbWeight::get().reads(5_u64))
 			.saturating_add(RocksDbWeight::get().writes(5_u64))
 	}
 	// Storage: DaoCore Daos (r:1 w:1)
 	#[rustfmt::skip]
 	fn set_metadata() -> Weight {
-		Weight::from_ref_time(161_000_000_u64)
+		Weight::from_parts(161_000_000_u64, 0)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
