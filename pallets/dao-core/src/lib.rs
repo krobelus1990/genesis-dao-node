@@ -58,7 +58,6 @@ pub mod pallet {
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub (super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
@@ -158,6 +157,7 @@ pub mod pallet {
 		/// - `dao_name`: Name of the to-be-created DAO, bounded by _MinLength_ & _MaxLengthName_
 		///
 		/// A DAO must reserve the _DaoDeposit_ fee.
+		#[pallet::call_index(1)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::create_dao())]
 		pub fn create_dao(
 			origin: OriginFor<T>,
@@ -205,6 +205,7 @@ pub mod pallet {
 		/// - `dao_id`: The DAO to destroy
 		///
 		/// Signer of this TX needs to be the owner of the DAO.
+		#[pallet::call_index(2)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::destroy_dao())]
 		pub fn destroy_dao(origin: OriginFor<T>, dao_id: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -232,6 +233,7 @@ pub mod pallet {
 		///
 		/// Tokens can only be issued once and the signer of this TX needs to be the owner
 		/// of the DAO.
+		#[pallet::call_index(3)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::issue_token())]
 		pub fn issue_token(
 			origin: OriginFor<T>,
@@ -286,6 +288,7 @@ pub mod pallet {
 		/// - `dao_id`: The DAO for which to set metadata
 		/// - `meta`: HTTP or IPFS address for the metadata about this DAO (description, logo)
 		/// - `hash`: SHA3 hash of the metadata to be found via `meta`
+		#[pallet::call_index(4)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::set_metadata())]
 		pub fn set_metadata(
 			origin: OriginFor<T>,
@@ -320,6 +323,7 @@ pub mod pallet {
 		///
 		/// - `dao_id`: the DAO to transfer ownership of
 		/// - `new_owner`: the new owner
+		#[pallet::call_index(5)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::set_metadata())]
 		pub fn change_owner(
 			origin: OriginFor<T>,
