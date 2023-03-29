@@ -235,8 +235,10 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		/// Genesis assets: id, owner, is_sufficient, min_balance
+		#[allow(clippy::type_complexity)]
 		pub assets: Vec<(T::AssetId, T::AccountId, bool, T::Balance)>,
 		/// Genesis metadata: id, name, symbol, decimals
+		#[allow(clippy::type_complexity)]
 		pub metadata: Vec<(T::AssetId, Vec<u8>, Vec<u8>, u8)>,
 		/// Genesis accounts: id, account_id, balance
 		pub accounts: Vec<(T::AssetId, T::AccountId, T::Balance)>,

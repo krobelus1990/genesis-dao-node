@@ -174,11 +174,11 @@ impl<T: Config> Pallet<T> {
 			ExistenceReason::DepositRefunded => {},
 			ExistenceReason::DepositHeld(_) if !force => return Keep,
 			ExistenceReason::DepositHeld(deposit) => {
-				T::Currency::unreserve(&who, deposit);
+				T::Currency::unreserve(who, deposit);
 			},
 		}
 		details.accounts.saturating_dec();
-		AccountHistory::<T>::remove(id, &who);
+		AccountHistory::<T>::remove(id, who);
 		Remove
 	}
 

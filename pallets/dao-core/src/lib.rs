@@ -173,7 +173,7 @@ pub mod pallet {
 				Error::<T>::DaoIdInvalidLengthTooShort
 			);
 			ensure!(
-				id.iter().all(|b| (b'A'..=b'Z').contains(b) || (b'0'..=b'9').contains(b)),
+				id.iter().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit()),
 				Error::<T>::DaoIdInvalidChar
 			);
 			ensure!(!<Daos<T>>::contains_key(&id), Error::<T>::DaoAlreadyExists);
