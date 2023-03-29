@@ -1,0 +1,86 @@
+--- ../substrate-node-template/runtime/Cargo.toml	2023-03-29 09:44:37.871879520 +0200
++++ ./runtime//local/Cargo.toml	2023-03-29 12:47:21.727580829 +0200
+@@ -1,13 +1,13 @@
+ [package]
+-name = "node-template-runtime"
++name = "local-runtime"
+ version = "4.0.0-dev"
+-description = "A fresh FRAME-based Substrate node, ready for hacking."
+-authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
+-homepage = "https://substrate.io/"
++description = "A local node for the genesis dao"
++authors = ["chp <chp@deep-ink.ventures>"]
++homepage = "https://deep-ink-ventures"
+ edition = "2021"
+ license = "Unlicense"
+ publish = false
+-repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
++repository = "https://github.com/shredding/genesis-dao"
+ 
+ [package.metadata.docs.rs]
+ targets = ["x86_64-unknown-linux-gnu"]
+@@ -20,6 +20,7 @@
+ pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ pallet-grandpa = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
++pallet-multisig = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ pallet-sudo = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ frame-try-runtime = { version = "0.10.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", optional = true , branch = "polkadot-v0.9.40" }
+@@ -48,7 +49,9 @@
+ frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", optional = true , branch = "polkadot-v0.9.40" }
+ 
+ # Local Dependencies
+-pallet-template = { version = "4.0.0-dev", default-features = false, path = "../pallets/template" }
++pallet-dao-core = { version = "4.0.0-dev", default-features = false, path = "../../pallets/dao-core" }
++pallet-dao-assets = { version = "4.0.0-dev", default-features = false,  path = "../../pallets/dao-assets" }
++pallet-dao-votes = { version = "4.0.0-dev", default-features = false,  path = "../../pallets/dao-votes" }
+ 
+ [build-dependencies]
+ substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", optional = true , branch = "polkadot-v0.9.40" }
+@@ -69,8 +72,11 @@
+ 	"pallet-aura/std",
+ 	"pallet-balances/std",
+ 	"pallet-grandpa/std",
++	"pallet-multisig/std",
+ 	"pallet-sudo/std",
+-	"pallet-template/std",
++	"pallet-dao-core/std",
++	"pallet-dao-assets/std",
++	"pallet-dao-votes/std",
+ 	"pallet-timestamp/std",
+ 	"pallet-transaction-payment-rpc-runtime-api/std",
+ 	"pallet-transaction-payment/std",
+@@ -86,7 +92,6 @@
+ 	"sp-std/std",
+ 	"sp-transaction-pool/std",
+ 	"sp-version/std",
+-	"substrate-wasm-builder",
+ ]
+ runtime-benchmarks = [
+ 	"frame-benchmarking/runtime-benchmarks",
+@@ -95,7 +100,10 @@
+ 	"frame-system/runtime-benchmarks",
+ 	"pallet-balances/runtime-benchmarks",
+ 	"pallet-grandpa/runtime-benchmarks",
+-	"pallet-template/runtime-benchmarks",
++	"pallet-multisig/runtime-benchmarks",
++	"pallet-dao-assets/runtime-benchmarks",
++	"pallet-dao-core/runtime-benchmarks",
++	"pallet-dao-votes/runtime-benchmarks",
+ 	"pallet-timestamp/runtime-benchmarks",
+ 	"sp-runtime/runtime-benchmarks",
+ ]
+@@ -107,8 +115,11 @@
+ 	"pallet-aura/try-runtime",
+ 	"pallet-balances/try-runtime",
+ 	"pallet-grandpa/try-runtime",
++	"pallet-multisig/try-runtime",
+ 	"pallet-sudo/try-runtime",
+-	"pallet-template/try-runtime",
++	"pallet-dao-assets/try-runtime",
++	"pallet-dao-core/try-runtime",
++	"pallet-dao-votes/try-runtime",
+ 	"pallet-timestamp/try-runtime",
+ 	"pallet-transaction-payment/try-runtime",
+ ]
