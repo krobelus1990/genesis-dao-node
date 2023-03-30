@@ -2,7 +2,8 @@ use node_runtime::{
 	assets::events::{AccountsDestroyed, Destroyed, DestructionStarted, Transferred},
 	dao_core::events::{DaoCreated, DaoDestroyed, DaoMetadataSet, DaoTokenIssued},
 	runtime_types::{
-		pallet_dao_core::types::Dao as DaoInternal, sp_core::bounded::bounded_vec::BoundedVec,
+		pallet_dao_core::types::Dao as DaoInternal,
+		bounded_collections::bounded_vec::BoundedVec,
 	},
 };
 use subxt::{tx::Signer, utils::AccountId32, OnlineClient, PolkadotConfig};
