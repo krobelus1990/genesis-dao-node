@@ -5,15 +5,6 @@ use frame_support::{traits::Get, BoundedVec};
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_std::{borrow::Borrow, fmt::Debug};
 
-#[must_use]
-#[derive(PartialEq)]
-pub(super) enum DeadConsequence {
-	Remove,
-	Keep,
-}
-
-use DeadConsequence::*;
-
 // The main implementation block for the module.
 impl<T: Config> Pallet<T> {
 	// Public immutables
@@ -141,45 +132,20 @@ impl<T: Config> Pallet<T> {
 	pub(super) fn new_account(
 		who: &T::AccountId,
 		d: &mut AssetDetailsOf<T>,
-		maybe_deposit: Option<DepositBalanceOf<T>>,
-	) -> Result<ExistenceReason<DepositBalanceOf<T>>, DispatchError> {
-		let accounts = d.accounts.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-		let reason = if let Some(deposit) = maybe_deposit {
-			ExistenceReason::DepositHeld(deposit)
-		} else if d.is_sufficient {
-			frame_system::Pallet::<T>::inc_sufficients(who);
-			d.sufficients += 1;
-			ExistenceReason::Sufficient
-		} else {
-			frame_system::Pallet::<T>::inc_consumers(who).map_err(|_| Error::<T>::NoProvider)?;
-			ExistenceReason::Consumer
-		};
-		d.accounts = accounts;
-		Ok(reason)
+	) -> Result<AssetAccountOf<T>, DispatchError> {
+		d.accounts = d.accounts.checked_add(1).ok_or(ArithmeticError::Overflow)?;
+		frame_system::Pallet::<T>::inc_sufficients(who);
+		Ok(AssetAccountOf::<T> { balance: Zero::zero(), reserved: Zero::zero() })
 	}
 
 	pub(super) fn dead_account(
 		id: T::AssetId,
 		who: &T::AccountId,
 		details: &mut AssetDetailsOf<T>,
-		reason: &ExistenceReason<DepositBalanceOf<T>>,
-		force: bool,
-	) -> DeadConsequence {
-		match *reason {
-			ExistenceReason::Consumer => frame_system::Pallet::<T>::dec_consumers(who),
-			ExistenceReason::Sufficient => {
-				details.sufficients.saturating_dec();
-				frame_system::Pallet::<T>::dec_sufficients(who);
-			},
-			ExistenceReason::DepositRefunded => {},
-			ExistenceReason::DepositHeld(_) if !force => return Keep,
-			ExistenceReason::DepositHeld(deposit) => {
-				T::Currency::unreserve(who, deposit);
-			},
-		}
+	) {
+		frame_system::Pallet::<T>::dec_sufficients(who);
 		details.accounts.saturating_dec();
 		AccountHistory::<T>::remove(id, who);
-		Remove
 	}
 
 	/// Returns `true` when the balance of `account` can be increased by `amount`.
@@ -206,16 +172,8 @@ impl<T: Config> Pallet<T> {
 			if balance.checked_add(&amount).is_none() {
 				return DepositConsequence::Overflow
 			}
-		} else {
-			if amount < details.min_balance {
-				return DepositConsequence::BelowMinimum
-			}
-			if !details.is_sufficient && !frame_system::Pallet::<T>::can_inc_consumer(who) {
-				return DepositConsequence::CannotCreate
-			}
-			if details.is_sufficient && details.sufficients.checked_add(1).is_none() {
-				return DepositConsequence::Overflow
-			}
+		} else if amount < details.min_balance {
+			return DepositConsequence::BelowMinimum
 		}
 
 		DepositConsequence::Success
@@ -400,14 +358,8 @@ impl<T: Config> Pallet<T> {
 			ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
 			check(details)?;
 
-			let mut account = match Account::<T>::get(id, beneficiary) {
-				Some(account) => account,
-				None => AssetAccountOf::<T> {
-					balance: Zero::zero(),
-					reserved: Zero::zero(),
-					reason: Self::new_account(beneficiary, details, None)?,
-				},
-			};
+			let mut account = Account::<T>::try_get(id, beneficiary)
+				.or_else(|_| Self::new_account(beneficiary, details))?;
 			account.balance.saturating_accrue(amount);
 			ensure!(account.balance >= details.min_balance, TokenError::BelowMinimum);
 			Self::update_account_history(id, beneficiary, account.balance + account.reserved);
@@ -482,10 +434,9 @@ impl<T: Config> Pallet<T> {
 			let mut account = Account::<T>::take(id, target).ok_or(Error::<T>::NoAccount)?;
 			debug_assert!(account.balance >= actual, "checked in prep; qed");
 			account.balance.saturating_reduce(actual);
-			if account.balance < details.min_balance &&
+			if account.balance < details.min_balance {
 				// account already removed by take
-				Remove == Self::dead_account(id, target, details, &account.reason, false)
-			{
+				Self::dead_account(id, target, details);
 				debug_assert!(account.balance.is_zero(), "checked in prep; qed");
 				return Ok(())
 			};
@@ -610,14 +561,8 @@ impl<T: Config> Pallet<T> {
 			debug_assert!(source_account.balance >= debit, "checked in prep; qed");
 			source_account.balance.saturating_reduce(debit);
 
-			let mut account = match Account::<T>::get(id, dest) {
-				Some(account) => account,
-				None => AssetAccountOf::<T> {
-					balance: Zero::zero(),
-					reserved: Zero::zero(),
-					reason: Self::new_account(dest, details, None)?,
-				},
-			};
+			let mut account =
+				Account::<T>::try_get(id, dest).or_else(|_| Self::new_account(dest, details))?;
 			// Calculate new balance; this will not saturate since it's already checked in prep.
 			debug_assert!(account.balance.checked_add(&credit).is_some(), "checked in prep; qed");
 			account.balance.saturating_accrue(credit);
@@ -627,13 +572,15 @@ impl<T: Config> Pallet<T> {
 			// Remove source account if it's now dead.
 			if source_account.balance < details.min_balance {
 				debug_assert!(source_account.balance.is_zero(), "checked in prep; qed");
-				if Remove == Self::dead_account(id, source, details, &source_account.reason, false)
-				{
-					Account::<T>::remove(id, source);
-					return Ok(())
-				}
+				Self::dead_account(id, source, details);
+				Account::<T>::remove(id, source);
+				return Ok(())
 			}
-			Self::update_account_history(id, source, source_account.balance + source_account.reserved);
+			Self::update_account_history(
+				id,
+				source,
+				source_account.balance + source_account.reserved,
+			);
 			Account::<T>::insert(id, source, &source_account);
 			Ok(())
 		})?;
@@ -655,10 +602,9 @@ impl<T: Config> Pallet<T> {
 	///   this asset.
 	/// * `min_balance`: The minimum balance a user is allowed to have of this asset before they are
 	///   considered dust and cleaned up.
-	pub(super) fn do_force_create(
+	pub fn do_force_create(
 		id: T::AssetId,
 		owner: T::AccountId,
-		is_sufficient: bool,
 		min_balance: T::Balance,
 	) -> DispatchResult {
 		ensure!(!Asset::<T>::contains_key(id), Error::<T>::InUse);
@@ -673,9 +619,7 @@ impl<T: Config> Pallet<T> {
 				supply: Zero::zero(), // no need to record a supply of zero in the SupplyHistory
 				deposit: Zero::zero(),
 				min_balance,
-				is_sufficient,
 				accounts: 0,
-				sufficients: 0,
 				approvals: 0,
 				status: AssetStatus::Live,
 			},
@@ -720,9 +664,9 @@ impl<T: Config> Pallet<T> {
 			// Should only destroy accounts while the asset is in a destroying state
 			ensure!(details.status == AssetStatus::Destroying, Error::<T>::IncorrectStatus);
 
-			for (who, v) in Account::<T>::drain_prefix(id).take(max_items.try_into().unwrap()) {
+			for (who, _) in Account::<T>::drain_prefix(id).take(max_items.try_into().unwrap()) {
 				// account already removed by drain
-				let _ = Self::dead_account(id, &who, details, &v.reason, true);
+				Self::dead_account(id, &who, details);
 				dead_accounts += 1;
 			}
 			remaining_accounts = details.accounts;

@@ -22,7 +22,7 @@ pub use frame_support::{
 	sp_runtime::traits::{One, Saturating},
 	storage::bounded_vec::BoundedVec,
 	traits::{
-		tokens::fungibles::{metadata::Mutate as MetadataMutate, Create, Mutate},
+		tokens::fungibles::{metadata::Mutate as MetadataMutate, Mutate},
 		Currency,
 	},
 	weights::Weight,
@@ -118,7 +118,7 @@ pub mod pallet {
 		DaoOwnerChanged {
 			dao_id: DaoIdOf<T>,
 			new_owner: T::AccountId,
-		}
+		},
 	}
 
 	#[pallet::error]
@@ -247,10 +247,10 @@ pub mod pallet {
 
 			// // create a fresh asset
 			<CurrentAssetId<T>>::mutate(|asset_id| asset_id.saturating_inc());
-			<pallet_dao_assets::pallet::Pallet<T> as Create<T::AccountId>>::create(
+
+			<pallet_dao_assets::pallet::Pallet<T>>::do_force_create(
 				<CurrentAssetId<T>>::get().into(),
 				dao.owner.clone(),
-				true,
 				One::one(),
 			)?;
 
