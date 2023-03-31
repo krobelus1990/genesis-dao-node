@@ -9,7 +9,7 @@ doctest = false
 
 [dependencies]
 parity-scale-codec = "3.3.0"
-sp-keyring = "12.0.0" # needs to match the version used in subxt!
-subxt = "0.26.0"
-tokio = "1.25.0"
+sp-keyring = "18.0.0" # needs to match the sp-core version used in subxt?
+subxt = "0.27.1"
+tokio = "1.26.0"
 
