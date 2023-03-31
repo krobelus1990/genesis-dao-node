@@ -236,7 +236,7 @@ pub mod pallet {
 	pub struct GenesisConfig<T: Config> {
 		/// Genesis assets: id, owner, is_sufficient, min_balance
 		#[allow(clippy::type_complexity)]
-		pub assets: Vec<(T::AssetId, T::AccountId, bool, T::Balance)>,
+		pub assets: Vec<(T::AssetId, T::AccountId, T::Balance)>,
 		/// Genesis metadata: id, name, symbol, decimals
 		#[allow(clippy::type_complexity)]
 		pub metadata: Vec<(T::AssetId, Vec<u8>, Vec<u8>, u8)>,
@@ -258,7 +258,7 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for (id, owner, is_sufficient, min_balance) in &self.assets {
+			for (id, owner, min_balance) in &self.assets {
 				assert!(!Asset::<T>::contains_key(id), "Asset id already in use");
 				assert!(!min_balance.is_zero(), "Min balance should not be zero");
 				Asset::<T>::insert(
@@ -270,9 +270,7 @@ pub mod pallet {
 						supply: Zero::zero(),
 						deposit: Zero::zero(),
 						min_balance: *min_balance,
-						is_sufficient: *is_sufficient,
 						accounts: 0,
-						sufficients: 0,
 						approvals: 0,
 						status: AssetStatus::Live,
 					},
@@ -391,10 +389,6 @@ pub mod pallet {
 		BadWitness,
 		/// Minimum balance should be non-zero.
 		MinBalanceZero,
-		/// Unable to increment the consumer reference counters on the account. Either no provider
-		/// reference exists to allow a non-zero balance of a non-self-sufficient asset, or the
-		/// maximum number of consumers has been reached.
-		NoProvider,
 		/// Invalid metadata given.
 		BadMetadata,
 		/// No approval exists that would allow the transfer.
@@ -403,13 +397,8 @@ pub mod pallet {
 		WouldDie,
 		/// The asset-account already exists.
 		AlreadyExists,
-		/// The asset-account doesn't have an associated deposit.
-		NoDeposit,
 		/// The operation would result in funds being burned.
 		WouldBurn,
-		/// The asset is a live asset and is actively being used. Usually emit for operations such
-		/// as `start_destroy` which require the asset to be in a destroying state.
-		LiveAsset,
 		/// The asset is not live, and likely being destroyed.
 		AssetNotLive,
 		/// The asset status is not the expected status.
@@ -595,7 +584,7 @@ pub mod pallet {
 
 			Asset::<T>::try_mutate(id, |maybe_details| {
 				let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
-				ensure!(details.status == AssetStatus::Live, Error::<T>::LiveAsset);
+				ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
 				ensure!(origin == details.owner, Error::<T>::NoPermission);
 				if details.owner == owner {
 					return Ok(())
@@ -813,36 +802,6 @@ pub mod pallet {
 			let destination = T::Lookup::lookup(destination)?;
 			let id: T::AssetId = id.into();
 			Self::do_transfer_approved(id, &owner, &delegate, &destination, amount)
-		}
-
-		/// Create an asset account for non-provider assets.
-		///
-		/// A deposit will be taken from the signer account.
-		///
-		/// - `origin`: Must be Signed; the signer account must have sufficient funds for a deposit
-		///   to be taken.
-		/// - `id`: The identifier of the asset for the account to be created.
-		///
-		/// Emits `Touched` event when successful.
-		#[pallet::call_index(26)]
-		#[pallet::weight(T::WeightInfo::mint())]
-		pub fn touch(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
-			let id: T::AssetId = id.into();
-			Self::do_touch(id, ensure_signed(origin)?)
-		}
-
-		/// Return the deposit (if any) of an asset account.
-		///
-		/// The origin must be Signed.
-		///
-		/// - `id`: The identifier of the asset for the account to be created.
-		///
-		/// Emits `Refunded` event when successful.
-		#[pallet::call_index(27)]
-		#[pallet::weight(T::WeightInfo::mint())]
-		pub fn refund(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
-			let id: T::AssetId = id.into();
-			Self::do_refund(id, ensure_signed(origin)?)
 		}
 	}
 }

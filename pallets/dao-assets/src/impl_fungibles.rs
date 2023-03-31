@@ -153,17 +153,6 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 	}
 }
 
-impl<T: Config> fungibles::Create<T::AccountId> for Pallet<T> {
-	fn create(
-		id: T::AssetId,
-		admin: T::AccountId,
-		is_sufficient: bool,
-		min_balance: Self::Balance,
-	) -> DispatchResult {
-		Self::do_force_create(id, admin, is_sufficient, min_balance)
-	}
-}
-
 impl<T: Config> fungibles::Destroy<T::AccountId> for Pallet<T> {
 	fn start_destroy(id: T::AssetId, maybe_check_owner: Option<T::AccountId>) -> DispatchResult {
 		Self::do_start_destroy(id, maybe_check_owner)
