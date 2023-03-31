@@ -3,7 +3,7 @@ name = "pallet-dao-votes"
 version = "4.0.0-dev"
 description = "FRAME pallet for the voting within a DAO"
 authors = ["chp"]
-homepage = "https://emerging-tech.agency"
+homepage = "https://deep-ink.ventures"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
@@ -34,11 +34,12 @@ std = [
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",
+	"frame-benchmarking?/std",
 	"scale-info/std",
 	"sp-runtime/std",
-	"pallet-dao-core/std",
 	"pallet-balances/std",
-	"pallet-dao-assets/std"
+	"pallet-dao-assets/std",
+	"pallet-dao-core/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
