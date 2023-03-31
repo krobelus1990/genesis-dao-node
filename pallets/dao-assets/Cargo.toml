@@ -29,13 +29,13 @@ sp-io = { version = "7.0.0", default-features = false, git = "https://github.com
 default = ["std"]
 std = [
 	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+	"frame-benchmarking?/std",
 	"scale-info/std",
 	"sp-std/std",
 	"sp-runtime/std",
 	"pallet-balances/std",
-	"frame-support/std",
-	"frame-system/std",
-	"frame-benchmarking?/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
