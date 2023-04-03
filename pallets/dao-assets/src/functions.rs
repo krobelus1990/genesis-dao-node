@@ -664,7 +664,7 @@ impl<T: Config> Pallet<T> {
 			// Should only destroy accounts while the asset is in a destroying state
 			ensure!(details.status == AssetStatus::Destroying, Error::<T>::IncorrectStatus);
 
-			for (who, _) in Account::<T>::drain_prefix(id).take(max_items.try_into().unwrap()) {
+			for (who, _) in Account::<T>::drain_prefix(id).take(max_items as usize) {
 				// account already removed by drain
 				Self::dead_account(id, &who, details);
 				dead_accounts += 1;
