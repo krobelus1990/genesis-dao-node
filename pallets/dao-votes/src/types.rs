@@ -7,7 +7,7 @@ use frame_support::{
 use scale_info::TypeInfo;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct Proposal<Id, DaoId, AccountId, BlockId, Metadata> {
+pub struct Proposal<Id, DaoId, AccountId, BlockId, Balance, Metadata> {
 	pub id: Id,
 	pub dao_id: DaoId,
 	pub creator: AccountId,
@@ -15,12 +15,15 @@ pub struct Proposal<Id, DaoId, AccountId, BlockId, Metadata> {
 	pub meta: Metadata,
 	pub meta_hash: BoundedVec<u8, ConstU32<64>>,
 	pub status: ProposalStatus,
+	pub in_favor: Balance,
+	pub against: Balance,
 }
 
 #[derive(Clone, Copy, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalStatus {
 	#[default]
 	Active,
+	Counting,
 	Accepted,
 	Rejected,
 	Faulty,

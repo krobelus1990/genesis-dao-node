@@ -2,10 +2,8 @@
 
 use sp_std::prelude::*;
 
-pub use frame_support::{
-	sp_runtime::traits::{One, Saturating, Zero},
-	storage::bounded_vec::BoundedVec,
-	traits::ReservableCurrency,
+use frame_support::{
+	sp_runtime::traits::Zero, storage::bounded_vec::BoundedVec, traits::ReservableCurrency,
 };
 pub use pallet::*;
 
@@ -35,6 +33,7 @@ type ProposalOf<T> = Proposal<
 	DaoIdOf<T>,
 	<T as frame_system::Config>::AccountId,
 	<T as frame_system::Config>::BlockNumber,
+	AssetBalanceOf<T>,
 	pallet_dao_core::MetadataOf<T>,
 >;
 
@@ -73,8 +72,11 @@ pub mod pallet {
 		#[pallet::constant]
 		type ProposalDeposit: Get<DepositBalanceOf<Self>>;
 
-		// #[pallet::constant]
-		// type MaxIdLength: Get<u32>;
+		/// Max number of cast votes that can be counted per `finalize_proposal` call.
+		///
+		/// Must be configured to result in a weight that makes each call fit in a block.
+		#[pallet::constant]
+		type FinalizeVotesLimit: Get<u32>;
 	}
 
 	#[pallet::event]
@@ -91,6 +93,9 @@ pub mod pallet {
 			proposal_id: ProposalIdOf<T>,
 		},
 		ProposalRejected {
+			proposal_id: ProposalIdOf<T>,
+		},
+		ProposalCounting {
 			proposal_id: ProposalIdOf<T>,
 		},
 		VoteCast {
@@ -172,6 +177,8 @@ pub mod pallet {
 					creator: sender,
 					birth_block,
 					status: ProposalStatus::Active,
+					in_favor: Zero::zero(),
+					against: Zero::zero(),
 					meta,
 					meta_hash: hash,
 				},
@@ -224,23 +231,28 @@ pub mod pallet {
 			let mut proposal = <Proposals<T>>::try_get(proposal_id.clone())
 				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
 
-			// check that the proposal is currently active
-			ensure!(proposal.status == ProposalStatus::Active, Error::<T>::ProposalIsNotActive);
-
+			// check that the proposal is currently active or counting
+			ensure!(
+				proposal.status == ProposalStatus::Active ||
+					proposal.status == ProposalStatus::Counting,
+				Error::<T>::ProposalIsNotActive
+			);
 			let governance =
 				<Governances<T>>::get(&proposal.dao_id).ok_or(Error::<T>::GovernanceNotSet)?;
-
 			let current_block = <frame_system::Pallet<T>>::block_number();
+
 			// check that the proposal has run for its entire duration
-			ensure!(
-				current_block - proposal.birth_block > governance.proposal_duration.into(),
-				Error::<T>::ProposalDurationHasNotPassed
-			);
+			if proposal.status == ProposalStatus::Active {
+				ensure!(
+					current_block - proposal.birth_block > governance.proposal_duration.into(),
+					Error::<T>::ProposalDurationHasNotPassed
+				);
+				proposal.status = ProposalStatus::Counting;
+			}
 
-			// set proposal status to rejected, then check if it should be accepted
-			proposal.status = ProposalStatus::Rejected;
-
+			// check that there is enough history
 			if current_block - proposal.birth_block >= T::HistoryHorizon::get().into() {
+				// possibly not enough history
 				proposal.status = ProposalStatus::Rejected;
 			} else {
 				// there is definitely enough history
@@ -250,9 +262,9 @@ pub mod pallet {
 					.expect("asset has been issued");
 
 				// count votes
-				let mut votes_for: AssetBalanceOf<T> = Zero::zero();
-				let mut votes_against: AssetBalanceOf<T> = Zero::zero();
-				for (account_id, in_favor) in <Votes<T>>::iter_prefix(&proposal_id) {
+				for (account_id, in_favor) in <Votes<T>>::drain_prefix(&proposal_id)
+					.take(T::FinalizeVotesLimit::get() as usize)
+				{
 					let token_balance = Assets::<T>::total_historical_balance(
 						asset_id.into(),
 						account_id,
@@ -260,65 +272,50 @@ pub mod pallet {
 					)
 					.expect("History exists (horizon checked above)");
 					if in_favor {
-						votes_for += token_balance;
+						proposal.in_favor += token_balance;
 					} else {
-						votes_against += token_balance;
+						proposal.against += token_balance;
 					}
 				}
 
-				// count delegated votes that have not already been counted as direct votes
-				for (account_id, delegatee) in <Delegations<T>>::iter_prefix(&proposal.dao_id) {
-					// the delegatee needs to have voted
-					if let Some(in_favor) = <Votes<T>>::get(&proposal_id, &delegatee) {
-						// the account should not have voted as normal votes have already been
-						// counted
-						if !<Votes<T>>::contains_key(&proposal_id, &account_id) {
-							let token_balance = Assets::<T>::total_historical_balance(
-								asset_id.into(),
-								account_id,
-								proposal.birth_block,
-							)
-							.expect("History exists (horizon checked above)");
-							if in_favor {
-								votes_for += token_balance;
+				// if there are no more votes to be counted
+				if !<Votes<T> as frame_support::StorageDoubleMap<_, _, _>>::contains_prefix(
+					&proposal_id,
+				) {
+					// determine whether proposal has required votes and set status accordingly
+					match governance.voting {
+						Voting::Majority { minimum_majority_per_1024 } => {
+							if proposal.in_favor > proposal.against && {
+								let token_supply = Assets::<T>::total_historical_supply(
+									asset_id.into(),
+									proposal.birth_block,
+								)
+								.expect("History exists (horizon checked above)");
+								let required_majority = token_supply /
+									Into::<AssetBalanceOf<T>>::into(1024_u32) *
+									minimum_majority_per_1024.into();
+								// check for the required majority
+								proposal.in_favor - proposal.against >= required_majority
+							} {
+								proposal.status = ProposalStatus::Accepted;
 							} else {
-								votes_against += token_balance;
+								proposal.status = ProposalStatus::Rejected;
 							}
-						}
+						},
 					}
-				}
-
-				// determine whether proposal has required votes and set status accordingly
-				match governance.voting {
-					Voting::Majority { minimum_majority_per_1024 } => {
-						if votes_for > votes_against && {
-							let token_supply = Assets::<T>::total_historical_supply(
-								asset_id.into(),
-								proposal.birth_block,
-							)
-							.expect("History exists (horizon checked above)");
-							let required_majority = token_supply /
-								Into::<AssetBalanceOf<T>>::into(1024_u32) *
-								minimum_majority_per_1024.into();
-							// check for the required majority
-							votes_for - votes_against >= required_majority
-						} {
-							proposal.status = ProposalStatus::Accepted;
-						}
-					},
+					// unreserve proposal deposit
+					CurrencyOf::<T>::unreserve(&sender, <T as Config>::ProposalDeposit::get());
 				}
 			}
 
 			// record updated proposal status
 			<Proposals<T>>::insert(proposal_id.clone(), proposal.clone());
 
-			// unreserve currency
-			CurrencyOf::<T>::unreserve(&sender, <T as Config>::ProposalDeposit::get());
-
 			// emit event
 			Self::deposit_event(match proposal.status {
 				ProposalStatus::Accepted => Event::ProposalAccepted { proposal_id },
 				ProposalStatus::Rejected => Event::ProposalRejected { proposal_id },
+				ProposalStatus::Counting => Event::ProposalCounting { proposal_id },
 				_ => unreachable!(),
 			});
 
