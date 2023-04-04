@@ -110,3 +110,8 @@ Optional: Mark the proposal as faulty if it contains spam.
 Wait for the number of blocks configured above and finalize the proposal. Everyone can do this!
 
 <img width="1791" alt="Screenshot 2023-04-04 at 17 27 35" src="https://user-images.githubusercontent.com/120174523/229844082-b83f3b49-bfb8-4051-b7f3-f8447d13a2ea.png">
+
+Veryify that the proposal got accepted:
+
+<img width="1792" alt="Screenshot 2023-04-04 at 17 36 38" src="https://user-images.githubusercontent.com/120174523/229844415-b38c4294-619f-4097-b96c-0517077eab1c.png">
+
