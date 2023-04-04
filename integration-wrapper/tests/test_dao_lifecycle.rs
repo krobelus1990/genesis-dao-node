@@ -54,15 +54,103 @@ fn dao_lifecycle() {
 		},
 	}
 
-	let other_user: AccountId32 = AccountKeyring::Bob.to_account_id().into();
-	match transfer_tokens(&user, asset_id, other_user.clone(), token_supply) {
+	let proposal_duration = 100_u32.into();
+	let proposal_token_deposit = 1_u32.into();
+	let minimum_majority_per_1024 = 10;
+	match set_governance(
+		&user,
+		dao_id.clone(),
+		proposal_duration,
+		proposal_token_deposit,
+		minimum_majority_per_1024,
+	) {
+		Err(error) => panic!("Error setting governance: {error}"),
+		Ok(None) => panic!("No SetGovernanceMajorityVote event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.dao_id.0, dao_id, "Set governance for wrong DAO");
+			assert_eq!(event.proposal_duration, proposal_duration, "Set wrong proposal duration");
+			assert_eq!(
+				event.proposal_token_deposit, proposal_token_deposit,
+				"Set wrong proposal token deposit"
+			);
+			assert_eq!(
+				event.minimum_majority_per_1024, minimum_majority_per_1024,
+				"Set wrong minimum majority"
+			);
+		},
+	}
+
+	let faulty_prop_id = b"FAULTY".to_vec();
+	let metadata = b"http://my.cool.proposal".to_vec();
+	// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
+	let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+	match create_proposal(
+		&user,
+		dao_id.clone(),
+		faulty_prop_id.clone(),
+		metadata.clone(),
+		hash.clone(),
+	) {
+		Err(error) => panic!("Error creating proposal: {error}"),
+		Ok(None) => panic!("No ProposalCreated event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.proposal_id.0, faulty_prop_id, "Created proposal with wrong id");
+		},
+	}
+
+	let reason = b"Bad".to_vec();
+	match fault_proposal(&user, faulty_prop_id.clone(), reason.clone()) {
+		Err(error) => panic!("Error faulting proposal: {error}"),
+		Ok(None) => panic!("No ProposalFaulted event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.proposal_id.0, faulty_prop_id, "Faulted proposal with wrong id");
+			assert_eq!(event.reason, reason, "Faulted proposal for wrong reason");
+		},
+	}
+
+	// create fresh proposal
+	let proposal_id = b"PROPOSAL".to_vec();
+	match create_proposal(&user, dao_id.clone(), proposal_id.clone(), metadata, hash) {
+		Err(error) => panic!("Error creating proposal: {error}"),
+		Ok(None) => panic!("No ProposalCreated event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.proposal_id.0, proposal_id, "Created proposal with wrong id");
+		},
+	}
+
+	let in_favor = Some(true);
+	match vote(&user, proposal_id.clone(), in_favor) {
+		Err(error) => panic!("Error voting: {error}"),
+		Ok(None) => panic!("No VoteCast event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.proposal_id.0, proposal_id, "Created vote with wrong proposal id");
+			assert_eq!(event.voter, *user.account_id(), "Created vote for wrong voter");
+		},
+	}
+
+	let to: AccountId32 = AccountKeyring::Bob.to_account_id().into();
+	match delegate(&user, dao_id.clone(), Some(to.clone())) {
+		Err(error) => panic!("Error delegating: {error}"),
+		Ok(None) => panic!("No Delegation event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.dao_id.0, dao_id, "Created delegation for wrong dao id");
+			assert_eq!(
+				event.delegator,
+				*user.account_id(),
+				"Created delegation for wrong delegator"
+			);
+		},
+	}
+
+	let transfer_amount = 1000;
+	match transfer_tokens(&user, asset_id, to.clone(), transfer_amount) {
 		Err(error) => panic!("Error transferring DAO tokens: {error}"),
 		Ok(None) => panic!("No Transferred event"),
 		Ok(Some(event)) => {
 			assert_eq!(event.asset_id, asset_id, "Transfer of wrong asset");
 			assert_eq!(event.from, *user.account_id(), "Transfer from wrong account");
-			assert_eq!(event.to, other_user, "Transfer to wrong account");
-			assert_eq!(event.amount, token_supply, "Transfer of wrong amount");
+			assert_eq!(event.to, to, "Transfer to wrong account");
+			assert_eq!(event.amount, transfer_amount, "Transfer of wrong amount");
 		},
 	}
 

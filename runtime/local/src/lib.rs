@@ -349,6 +349,7 @@ impl pallet_dao_core::Config for Runtime {
 impl pallet_dao_votes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ProposalDeposit = ConstU128<UNITS>;
+	type FinalizeVotesLimit = ConstU32<1000>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
