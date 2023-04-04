@@ -74,27 +74,27 @@ The voting process user interface is part of the third milestone. We therefore w
 
 If you walk through the frontend you have a DAO setup with a token issued and it is released to a multisig council. We will create a fresh DAO within polkadot.js.org during this walkthrough to make sure everyone knows what we are doing.
 
-1. Create a DAO with an identifier and a name
+### Create a DAO with an identifier and a name
 
 <img width="1790" alt="Screenshot 2023-04-04 at 17 17 06" src="https://user-images.githubusercontent.com/120174523/229842186-5409e8b7-9071-4d9c-8287-6de5462b7ecb.png">
 
-2. Issue a token to it
+### Issue a token to it
 
 <img width="1792" alt="Screenshot 2023-04-04 at 17 17 48" src="https://user-images.githubusercontent.com/120174523/229842330-8b676a0b-0c37-40de-9b49-60be59bac4d5.png">
 
-3. Set the governance mode to majority voting.
+### Set the governance mode to majority voting.
 
 <img width="1792" alt="Screenshot 2023-04-04 at 17 19 03" src="https://user-images.githubusercontent.com/120174523/229842440-e523f901-5bf0-4297-b0ca-4b82b82f56bd.png">
 
 For this, configure the proposal duration in blocks, the required tokens in terms of the DAOs own tokens for a new proposal (we require DOT on top, to prevent spam) and how many more ayes than nays there must be for proposal acceptance (thus proposal acceptance requires: ayes >= nays + token_supply / 1024 * minimum_majority_per_1024)
 
-4. Create a proposal
+### Create a proposal
 
 <img width="1792" alt="Screenshot 2023-04-04 at 17 20 20" src="https://user-images.githubusercontent.com/120174523/229843023-7b26d390-5718-4917-9d32-2d0945ef112d.png">
 
 The metadata url and the corresponding hash are abstracted away in the dApp in the same way that we are doing it on the metadata for a DAO. It's a JSON file containing all the information about the proposal, such as description and a link to a forum discussion.
 
-5. Vote in favour of your new proposal
+### Vote in favour of your new proposal
  
 <img width="1792" alt="Screenshot 2023-04-04 at 17 20 55" src="https://user-images.githubusercontent.com/120174523/229843433-d3be9b0c-dfb2-4a1f-931b-cd070ecdb1c9.png">
 
@@ -106,7 +106,7 @@ Optional: Mark the proposal as faulty if it contains spam.
 
 <img width="1786" alt="Screenshot 2023-04-04 at 17 27 56" src="https://user-images.githubusercontent.com/120174523/229843774-0dc01510-1196-4381-a5bb-c7733beddb63.png">
 
-6. Finalize the proposal
+### Finalize the proposal
 Wait for the number of blocks configured above and finalize the proposal. Everyone can do this!
 
 <img width="1791" alt="Screenshot 2023-04-04 at 17 27 35" src="https://user-images.githubusercontent.com/120174523/229844082-b83f3b49-bfb8-4051-b7f3-f8447d13a2ea.png">
