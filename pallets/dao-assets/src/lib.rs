@@ -127,15 +127,6 @@ pub mod pallet {
 		/// attributes.
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		/// The basic amount of funds that must be reserved for an asset.
-		#[pallet::constant]
-		type AssetDeposit: Get<DepositBalanceOf<Self>>;
-
-		/// The amount of funds that must be reserved for a non-provider asset account to be
-		/// maintained.
-		#[pallet::constant]
-		type AssetAccountDeposit: Get<DepositBalanceOf<Self>>;
-
 		/// The basic amount of funds that must be reserved when adding metadata to your asset.
 		#[pallet::constant]
 		type MetadataDepositBase: Get<DepositBalanceOf<Self>>;
@@ -173,7 +164,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		T::AssetId,
-		AssetDetails<T::Balance, T::AccountId, DepositBalanceOf<T>>,
+		AssetDetails<T::Balance, T::AccountId>,
 	>;
 
 	#[pallet::storage]
@@ -265,7 +256,6 @@ pub mod pallet {
 					AssetDetails {
 						owner: owner.clone(),
 						supply: Zero::zero(),
-						deposit: Zero::zero(),
 						min_balance: *min_balance,
 						accounts: 0,
 						approvals: 0,

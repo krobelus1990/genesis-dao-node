@@ -600,7 +600,6 @@ impl<T: Config> Pallet<T> {
 			AssetDetails {
 				owner: owner.clone(),
 				supply: Zero::zero(), // no need to record a supply of zero in the SupplyHistory
-				deposit: Zero::zero(),
 				min_balance,
 				accounts: 0,
 				approvals: 0,
@@ -708,10 +707,7 @@ impl<T: Config> Pallet<T> {
 			ensure!(details.approvals == 0, Error::<T>::InUse);
 
 			let metadata = Metadata::<T>::take(id);
-			T::Currency::unreserve(
-				&details.owner,
-				details.deposit.saturating_add(metadata.deposit),
-			);
+			T::Currency::unreserve(&details.owner, metadata.deposit);
 			details.status = AssetStatus::Destroyed;
 
 			Self::deposit_event(Event::Destroyed { asset_id: id });

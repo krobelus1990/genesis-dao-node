@@ -75,8 +75,6 @@ impl Config for Test {
 	type Currency = Balances;
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
 	type ForceOrigin = frame_system::EnsureRoot<u64>;
-	type AssetDeposit = ConstU64<1>;
-	type AssetAccountDeposit = ConstU64<10>;
 	type MetadataDepositBase = ConstU64<1>;
 	type MetadataDepositPerByte = ConstU64<1>;
 	type ApprovalDeposit = ConstU64<1>;
@@ -93,7 +91,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
 	let config: pallet_dao_assets::GenesisConfig<Test> = pallet_dao_assets::GenesisConfig {
 		assets: vec![
-			// id, owner, is_sufficient, min_balance
+			// id, owner, min_balance
 			(999, 0, 1),
 		],
 		metadata: vec![

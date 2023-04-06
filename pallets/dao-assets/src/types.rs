@@ -13,7 +13,7 @@ pub type BalanceOf<F, T> = <F as fungible::Inspect<AccountIdOf<T>>>::Balance;
 pub type DepositBalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 // The account data for an asset
 pub type AssetAccountOf<T> = AssetAccount<AssetBalanceOf<T>>;
-pub type AssetDetailsOf<T> = AssetDetails<AssetBalanceOf<T>, AccountIdOf<T>, DepositBalanceOf<T>>;
+pub type AssetDetailsOf<T> = AssetDetails<AssetBalanceOf<T>, AccountIdOf<T>>;
 
 /// AssetStatus holds the current state of the asset. It could either be Live and available for use,
 /// or in a Destroying state.
@@ -29,13 +29,11 @@ pub enum AssetStatus {
 }
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct AssetDetails<Balance, AccountId, DepositBalance> {
+pub struct AssetDetails<Balance, AccountId> {
 	/// Can destroy this asset
 	pub(super) owner: AccountId,
 	/// The total supply across all accounts.
 	pub(super) supply: Balance,
-	/// The balance deposited for this asset. This pays for the data stored here.
-	pub(super) deposit: DepositBalance,
 	/// The ED for virtual accounts.
 	pub(super) min_balance: Balance,
 	/// The total number of accounts.

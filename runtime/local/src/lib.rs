@@ -300,8 +300,6 @@ impl pallet_utility::Config for Runtime {
 
 // Configure the DAO pallets ...
 parameter_types! {
-	pub const AssetDeposit: Balance = 10 * UNITS; // 10 UNITS deposit to create fungible asset class
-	pub const AssetAccountDeposit: Balance = deposit(1, 16);
 	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
 	pub const AssetsStringLimit: u32 = 50;
 	pub const MetadataDepositBase: Balance = deposit(1, 68);
@@ -317,7 +315,6 @@ impl pallet_dao_assets::Config for Runtime {
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-	type AssetDeposit = AssetDeposit;
 	type MetadataDepositBase = MetadataDepositBase;
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;
@@ -325,7 +322,6 @@ impl pallet_dao_assets::Config for Runtime {
 	type StringLimit = AssetsStringLimit;
 	type HistoryHorizon = ConstU32<{5*144000}>; // a day is 14400 blocks of 6s
 	type WeightInfo = ();
-	type AssetAccountDeposit = AssetAccountDeposit;
 
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
