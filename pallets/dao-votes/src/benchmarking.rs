@@ -126,10 +126,11 @@ benchmarks! {
 		let dao_id = setup_dao_with_governance::<T>(caller.clone());
 		let proposal_id = setup_proposal::<T>(caller.clone(), dao_id);
 		let voter = caller;
-	}: _(RawOrigin::Signed(voter.clone()), proposal_id.clone(), Some(true))
+		let in_favor = Some(true);
+	}: _(RawOrigin::Signed(voter.clone()), proposal_id.clone(), in_favor)
 	verify {
 		let proposal_id: BoundedVec<_, _> = proposal_id.try_into().expect("fits");
-		assert_last_event::<T>(Event::VoteCast { proposal_id, voter }.into());
+		assert_last_event::<T>(Event::VoteCast { proposal_id, voter, in_favor }.into());
 	}
 
 	set_governance_majority_vote {

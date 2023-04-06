@@ -97,6 +97,7 @@ pub mod pallet {
 		VoteCast {
 			proposal_id: ProposalIdOf<T>,
 			voter: AccountIdOf<T>,
+			in_favor: Option<bool>,
 		},
 		SetGovernanceMajorityVote {
 			dao_id: DaoIdOf<T>,
@@ -343,7 +344,7 @@ pub mod pallet {
 			);
 
 			<Votes<T>>::set(&proposal_id, &voter, in_favor);
-			Self::deposit_event(Event::<T>::VoteCast { proposal_id, voter });
+			Self::deposit_event(Event::<T>::VoteCast { proposal_id, voter, in_favor });
 			Ok(())
 		}
 
