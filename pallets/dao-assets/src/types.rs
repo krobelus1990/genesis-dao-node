@@ -30,12 +30,8 @@ pub enum AssetStatus {
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub struct AssetDetails<Balance, AccountId, DepositBalance> {
-	/// Can change `owner`, `issuer`, and `admin` accounts.
+	/// Can destroy this asset
 	pub(super) owner: AccountId,
-	/// Can mint tokens.
-	pub(super) issuer: AccountId,
-	/// Can force transfers and burn tokens from any account.
-	pub(super) admin: AccountId,
 	/// The total supply across all accounts.
 	pub(super) supply: Balance,
 	/// The balance deposited for this asset. This pays for the data stored here.

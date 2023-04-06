@@ -15,16 +15,10 @@ fn default_asset_id<T: Config>() -> T::AssetIdParameter {
 	T::BenchmarkHelper::create_asset_id_parameter(0)
 }
 
-fn create_default_asset<T: Config>(
-) -> (T::AssetIdParameter, T::AccountId) {
+fn create_default_asset<T: Config>() -> (T::AssetIdParameter, T::AccountId) {
 	let asset_id = default_asset_id::<T>();
 	let caller: T::AccountId = whitelisted_caller();
-	assert!(Assets::<T>::do_force_create(
-		asset_id.into(),
-		caller.clone(),
-		1u32.into(),
-	)
-	.is_ok());
+	assert!(Assets::<T>::do_force_create(asset_id.into(), caller.clone(), 1u32.into(),).is_ok());
 	(asset_id, caller)
 }
 
@@ -32,30 +26,22 @@ fn create_default_minted_asset<T: Config>(
 	amount: T::Balance,
 ) -> (T::AssetIdParameter, T::AccountId) {
 	let (asset_id, caller) = create_default_asset::<T>();
-	assert!(Assets::<T>::do_mint(
-		asset_id.into(),
-		&caller,
-		amount,
-		Some(caller.clone())
-	)
-	.is_ok());
+	assert!(Assets::<T>::do_mint(asset_id.into(), &caller, amount).is_ok());
 	(asset_id, caller)
 }
 
-fn add_sufficients<T: Config>(minter: T::AccountId, n: u32) {
+fn add_sufficients<T: Config>(n: u32) {
 	let asset_id = default_asset_id::<T>();
 	for i in 0..n {
 		let target = account("sufficient", i, SEED);
-		assert!(Assets::<T>::do_mint(asset_id.into(), &target, 100u32.into(), Some(minter.clone()))
-			.is_ok());
+		assert!(Assets::<T>::do_mint(asset_id.into(), &target, 100u32.into()).is_ok());
 	}
 }
 
 fn add_approvals<T: Config>(minter: T::AccountId, n: u32) {
 	let asset_id = default_asset_id::<T>();
 	T::Currency::deposit_creating(&minter, T::ApprovalDeposit::get() * n.into());
-	Assets::<T>::do_mint(asset_id.into(), &minter, (100 * (n + 1)).into(), Some(minter.clone()))
-		.unwrap();
+	Assets::<T>::do_mint(asset_id.into(), &minter, (100 * (n + 1)).into()).unwrap();
 	let origin = SystemOrigin::Signed(minter);
 	for i in 0..n {
 		let target = account("approval", i, SEED);
@@ -90,7 +76,7 @@ benchmarks! {
 	destroy_accounts {
 		let c in 0 .. T::RemoveItemsLimit::get();
 		let (asset_id, caller) = create_default_asset::<T>();
-		add_sufficients::<T>(caller.clone(), c);
+		add_sufficients::<T>(c);
 		Assets::<T>::start_destroy(SystemOrigin::Signed(caller.clone()).into(), asset_id)?;
 	}:_(SystemOrigin::Signed(caller), asset_id)
 	verify {
@@ -146,28 +132,6 @@ benchmarks! {
 	verify {
 		assert!(frame_system::Pallet::<T>::account_exists(&caller));
 		assert_last_event::<T>(Event::Transferred { asset_id: asset_id.into(), from: caller, to: target, amount }.into());
-	}
-
-	transfer_ownership {
-		let (asset_id, caller) = create_default_asset::<T>();
-		let target: T::AccountId = account("target", 0, SEED);
-		let target_lookup = T::Lookup::unlookup(target.clone());
-	}: _(SystemOrigin::Signed(caller), asset_id, target_lookup)
-	verify {
-		assert_last_event::<T>(Event::OwnerChanged { asset_id: asset_id.into(), owner: target }.into());
-	}
-
-	set_team {
-		let (asset_id, caller) = create_default_asset::<T>();
-		let target0 = T::Lookup::unlookup(account("target", 0, SEED));
-		let target1 = T::Lookup::unlookup(account("target", 1, SEED));
-	}: _(SystemOrigin::Signed(caller), asset_id, target0, target1)
-	verify {
-		assert_last_event::<T>(Event::TeamChanged {
-			asset_id: asset_id.into(),
-			issuer: account("target", 0, SEED),
-			admin: account("target", 1, SEED),
-		}.into());
 	}
 
 	set_metadata {

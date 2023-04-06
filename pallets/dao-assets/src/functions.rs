@@ -312,12 +312,8 @@ impl<T: Config> Pallet<T> {
 		id: T::AssetId,
 		beneficiary: &T::AccountId,
 		amount: T::Balance,
-		maybe_check_issuer: Option<T::AccountId>,
 	) -> DispatchResult {
 		Self::increase_balance(id, beneficiary, amount, |details| -> DispatchResult {
-			if let Some(check_issuer) = maybe_check_issuer {
-				ensure!(check_issuer == details.issuer, Error::<T>::NoPermission);
-			}
 			debug_assert!(
 				T::Balance::max_value() - details.supply >= amount,
 				"checked in prep; qed"
@@ -380,18 +376,12 @@ impl<T: Config> Pallet<T> {
 		id: T::AssetId,
 		target: &T::AccountId,
 		amount: T::Balance,
-		maybe_check_admin: Option<T::AccountId>,
 		f: DebitFlags,
 	) -> Result<T::Balance, DispatchError> {
 		let d = Asset::<T>::get(id).ok_or(Error::<T>::Unknown)?;
 		ensure!(d.status == AssetStatus::Live, Error::<T>::AssetNotLive);
 
 		let actual = Self::decrease_balance(id, target, amount, f, |actual, details| {
-			// Check admin rights.
-			if let Some(check_admin) = maybe_check_admin {
-				ensure!(check_admin == details.admin, Error::<T>::NoPermission);
-			}
-
 			debug_assert!(details.supply >= actual, "checked in prep; qed");
 			details.supply.saturating_reduce(actual);
 
@@ -521,7 +511,6 @@ impl<T: Config> Pallet<T> {
 		source: &T::AccountId,
 		dest: &T::AccountId,
 		amount: T::Balance,
-		maybe_need_admin: Option<T::AccountId>,
 		f: TransferFlags,
 	) -> Result<T::Balance, DispatchError> {
 		// Early exit if no-op.
@@ -537,11 +526,6 @@ impl<T: Config> Pallet<T> {
 
 		Asset::<T>::try_mutate(id, |maybe_details| -> DispatchResult {
 			let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
-
-			// Check admin rights.
-			if let Some(need_admin) = maybe_need_admin {
-				ensure!(need_admin == details.admin, Error::<T>::NoPermission);
-			}
 
 			// Skip if source == dest
 			if source == dest {
@@ -597,9 +581,7 @@ impl<T: Config> Pallet<T> {
 	/// Create a new asset without taking a deposit.
 	///
 	/// * `id`: The `AssetId` you want the new asset to have. Must not already be in use.
-	/// * `owner`: The owner, issuer, and admin of this asset upon creation.
-	/// * `is_sufficient`: Whether this asset needs users to have an existential deposit to hold
-	///   this asset.
+	/// * `owner`: The owner of this asset upon creation.
 	/// * `min_balance`: The minimum balance a user is allowed to have of this asset before they are
 	///   considered dust and cleaned up.
 	pub fn do_force_create(
@@ -614,8 +596,6 @@ impl<T: Config> Pallet<T> {
 			id,
 			AssetDetails {
 				owner: owner.clone(),
-				issuer: owner.clone(),
-				admin: owner.clone(),
 				supply: Zero::zero(), // no need to record a supply of zero in the SupplyHistory
 				deposit: Zero::zero(),
 				min_balance,
@@ -804,7 +784,7 @@ impl<T: Config> Pallet<T> {
 					approved.amount.checked_sub(&amount).ok_or(Error::<T>::Unapproved)?;
 
 				let f = TransferFlags { keep_alive: false, best_effort: false, burn_dust: false };
-				Self::do_transfer(id, owner, destination, amount, None, f)?;
+				Self::do_transfer(id, owner, destination, amount, f)?;
 
 				if remaining.is_zero() {
 					T::Currency::unreserve(owner, approved.deposit);

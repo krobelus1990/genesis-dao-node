@@ -39,7 +39,6 @@ use frame_support::{
 	storage::KeyPrefixIterator,
 	traits::{
 		tokens::{fungibles, DepositConsequence, WithdrawConsequence},
-		BalanceStatus::Reserved,
 		Currency, EnsureOriginWithArg, ReservableCurrency,
 	},
 	BoundedBTreeMap,
@@ -265,8 +264,6 @@ pub mod pallet {
 					id,
 					AssetDetails {
 						owner: owner.clone(),
-						issuer: owner.clone(),
-						admin: owner.clone(),
 						supply: Zero::zero(),
 						deposit: Zero::zero(),
 						min_balance: *min_balance,
@@ -329,10 +326,6 @@ pub mod pallet {
 		},
 		/// Some assets were destroyed.
 		Burned { asset_id: T::AssetId, owner: T::AccountId, balance: T::Balance },
-		/// The management team changed.
-		TeamChanged { asset_id: T::AssetId, issuer: T::AccountId, admin: T::AccountId },
-		/// The owner changed.
-		OwnerChanged { asset_id: T::AssetId, owner: T::AccountId },
 		/// Accounts were destroyed for given asset.
 		AccountsDestroyed { asset_id: T::AssetId, accounts_destroyed: u32, accounts_remaining: u32 },
 		/// Approvals were destroyed for given asset.
@@ -524,7 +517,7 @@ pub mod pallet {
 			let id: T::AssetId = id.into();
 
 			let f = TransferFlags { keep_alive: false, best_effort: false, burn_dust: false };
-			Self::do_transfer(id, &origin, &dest, amount, None, f).map(|_| ())
+			Self::do_transfer(id, &origin, &dest, amount, f).map(|_| ())
 		}
 
 		/// Move some assets from the sender account to another, keeping the sender account alive.
@@ -558,86 +551,7 @@ pub mod pallet {
 			let id: T::AssetId = id.into();
 
 			let f = TransferFlags { keep_alive: true, best_effort: false, burn_dust: false };
-			Self::do_transfer(id, &source, &dest, amount, None, f).map(|_| ())
-		}
-
-		/// Change the Owner of an asset.
-		///
-		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
-		///
-		/// - `id`: The identifier of the asset.
-		/// - `owner`: The new Owner of this asset.
-		///
-		/// Emits `OwnerChanged`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(15)]
-		#[pallet::weight(T::WeightInfo::transfer_ownership())]
-		pub fn transfer_ownership(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			owner: AccountIdLookupOf<T>,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let owner = T::Lookup::lookup(owner)?;
-			let id: T::AssetId = id.into();
-
-			Asset::<T>::try_mutate(id, |maybe_details| {
-				let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
-				ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
-				ensure!(origin == details.owner, Error::<T>::NoPermission);
-				if details.owner == owner {
-					return Ok(())
-				}
-
-				let metadata_deposit = Metadata::<T>::get(id).deposit;
-				let deposit = details.deposit + metadata_deposit;
-
-				// Move the deposit to the new owner.
-				T::Currency::repatriate_reserved(&details.owner, &owner, deposit, Reserved)?;
-
-				details.owner = owner.clone();
-
-				Self::deposit_event(Event::OwnerChanged { asset_id: id, owner });
-				Ok(())
-			})
-		}
-
-		/// Change the Issuer and Admin of an asset.
-		///
-		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
-		///
-		/// - `id`: The asset identifier
-		/// - `issuer`: The new Issuer of this asset.
-		/// - `admin`: The new Admin of this asset.
-		///
-		/// Emits `TeamChanged`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(16)]
-		#[pallet::weight(T::WeightInfo::set_team())]
-		pub fn set_team(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			issuer: AccountIdLookupOf<T>,
-			admin: AccountIdLookupOf<T>,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let issuer = T::Lookup::lookup(issuer)?;
-			let admin = T::Lookup::lookup(admin)?;
-			let id: T::AssetId = id.into();
-
-			Asset::<T>::try_mutate(id, |maybe_details| {
-				let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
-				ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
-				ensure!(origin == details.owner, Error::<T>::NoPermission);
-
-				details.issuer = issuer.clone();
-				details.admin = admin.clone();
-
-				Self::deposit_event(Event::TeamChanged { asset_id: id, issuer, admin });
-				Ok(())
-			})
+			Self::do_transfer(id, &source, &dest, amount, f).map(|_| ())
 		}
 
 		/// Set the metadata for an asset.
