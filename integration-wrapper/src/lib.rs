@@ -4,9 +4,7 @@ use node_runtime::{
 	runtime_types::{
 		bounded_collections::bounded_vec::BoundedVec, pallet_dao_core::types::Dao as DaoInternal,
 	},
-	votes::events::{
-		Delegation, ProposalCreated, ProposalFaulted, SetGovernanceMajorityVote, VoteCast,
-	},
+	votes::events::{ProposalCreated, ProposalFaulted, SetGovernanceMajorityVote, VoteCast},
 };
 use subxt::{tx::Signer, utils::AccountId32, OnlineClient, PolkadotConfig};
 
@@ -175,23 +173,6 @@ pub async fn vote(
 
 	// transaction to be submitted
 	let tx = node_runtime::tx().votes().vote(proposal_id, in_favor);
-
-	// submit the transaction and wait for its event
-	let progress = api.tx().sign_and_submit_then_watch_default(&tx, signer).await?;
-	Ok(progress.wait_for_finalized_success().await?.find_first()?)
-}
-
-#[tokio::main]
-pub async fn delegate(
-	signer: &impl Signer<Config>,
-	dao_id: Vec<u8>,
-	to: Option<AccountId32>,
-) -> Result<Option<Delegation>, Box<dyn std::error::Error>> {
-	// client that can submit transactions
-	let api = OnlineClient::<Config>::new().await?;
-
-	// transaction to be submitted
-	let tx = node_runtime::tx().votes().delegate(dao_id, to);
 
 	// submit the transaction and wait for its event
 	let progress = api.tx().sign_and_submit_then_watch_default(&tx, signer).await?;

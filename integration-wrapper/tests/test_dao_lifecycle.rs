@@ -129,19 +129,6 @@ fn dao_lifecycle() {
 	}
 
 	let to: AccountId32 = AccountKeyring::Bob.to_account_id().into();
-	match delegate(&user, dao_id.clone(), Some(to.clone())) {
-		Err(error) => panic!("Error delegating: {error}"),
-		Ok(None) => panic!("No Delegation event"),
-		Ok(Some(event)) => {
-			assert_eq!(event.dao_id.0, dao_id, "Created delegation for wrong dao id");
-			assert_eq!(
-				event.delegator,
-				*user.account_id(),
-				"Created delegation for wrong delegator"
-			);
-		},
-	}
-
 	let transfer_amount = 1000;
 	match transfer_tokens(&user, asset_id, to.clone(), transfer_amount) {
 		Err(error) => panic!("Error transferring DAO tokens: {error}"),
