@@ -75,7 +75,6 @@ impl pallet_balances::Config for Test {
 
 parameter_types! {
 	// we're not really using this, as reservation is via DAO, but whatever
-	pub const AssetDeposit: Balance = 1;
 	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
 	pub const MetadataDepositBase: Balance = 1;
@@ -90,8 +89,6 @@ impl pallet_dao_assets::Config for Test {
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<Self::AccountId>>;
-	type AssetDeposit = AssetDeposit;
-	type AssetAccountDeposit = ConstU128<10>;
 	type MetadataDepositBase = MetadataDepositBase;
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;

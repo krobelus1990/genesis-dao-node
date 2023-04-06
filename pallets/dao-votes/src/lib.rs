@@ -58,10 +58,6 @@ pub mod pallet {
 	pub(super) type Votes<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, ProposalIdOf<T>, Twox64Concat, AccountIdOf<T>, bool>;
 
-	#[pallet::storage]
-	pub(super) type Delegations<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, DaoIdOf<T>, Twox64Concat, AccountIdOf<T>, AccountIdOf<T>>;
-
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
@@ -107,10 +103,6 @@ pub mod pallet {
 			proposal_duration: u32,
 			proposal_token_deposit: T::Balance,
 			minimum_majority_per_1024: u8,
-		},
-		Delegation {
-			dao_id: DaoIdOf<T>,
-			delegator: AccountIdOf<T>,
 		},
 	}
 
@@ -352,21 +344,6 @@ pub mod pallet {
 
 			<Votes<T>>::set(&proposal_id, &voter, in_favor);
 			Self::deposit_event(Event::<T>::VoteCast { proposal_id, voter });
-			Ok(())
-		}
-
-		#[pallet::call_index(5)]
-		#[pallet::weight(0)]
-		pub fn delegate(
-			origin: OriginFor<T>,
-			dao_id: Vec<u8>,
-			to: Option<AccountIdOf<T>>,
-		) -> DispatchResult {
-			let delegator = ensure_signed(origin)?;
-			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
-			let dao_id = dao.id;
-			<Delegations<T>>::set(&dao_id, &delegator, to);
-			Self::deposit_event(Event::<T>::Delegation { dao_id, delegator });
 			Ok(())
 		}
 

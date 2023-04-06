@@ -71,7 +71,7 @@ impl<T: Config> fungibles::Mutate<<T as SystemConfig>::AccountId> for Pallet<T> 
 		who: &<T as SystemConfig>::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
-		Self::do_mint(asset, who, amount, None)
+		Self::do_mint(asset, who, amount)
 	}
 
 	fn burn_from(
@@ -80,7 +80,7 @@ impl<T: Config> fungibles::Mutate<<T as SystemConfig>::AccountId> for Pallet<T> 
 		amount: Self::Balance,
 	) -> Result<Self::Balance, DispatchError> {
 		let f = DebitFlags { keep_alive: false, best_effort: false };
-		Self::do_burn(asset, who, amount, None, f)
+		Self::do_burn(asset, who, amount, f)
 	}
 
 	fn slash(
@@ -89,7 +89,7 @@ impl<T: Config> fungibles::Mutate<<T as SystemConfig>::AccountId> for Pallet<T> 
 		amount: Self::Balance,
 	) -> Result<Self::Balance, DispatchError> {
 		let f = DebitFlags { keep_alive: false, best_effort: true };
-		Self::do_burn(asset, who, amount, None, f)
+		Self::do_burn(asset, who, amount, f)
 	}
 }
 
@@ -102,7 +102,7 @@ impl<T: Config> fungibles::Transfer<T::AccountId> for Pallet<T> {
 		keep_alive: bool,
 	) -> Result<T::Balance, DispatchError> {
 		let f = TransferFlags { keep_alive, best_effort: false, burn_dust: false };
-		Self::do_transfer(asset, source, dest, amount, None, f)
+		Self::do_transfer(asset, source, dest, amount, f)
 	}
 }
 
@@ -229,24 +229,6 @@ impl<T: Config> fungibles::approvals::Mutate<<T as SystemConfig>::AccountId> for
 		amount: T::Balance,
 	) -> DispatchResult {
 		Self::do_transfer_approved(asset, owner, delegate, dest, amount)
-	}
-}
-
-impl<T: Config> fungibles::roles::Inspect<<T as SystemConfig>::AccountId> for Pallet<T> {
-	fn owner(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		Asset::<T>::get(asset).map(|x| x.owner)
-	}
-
-	fn issuer(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		Asset::<T>::get(asset).map(|x| x.issuer)
-	}
-
-	fn admin(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		Asset::<T>::get(asset).map(|x| x.admin)
-	}
-
-	fn freezer(_asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
-		None
 	}
 }
 

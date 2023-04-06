@@ -132,16 +132,6 @@ benchmarks! {
 		assert_last_event::<T>(Event::VoteCast { proposal_id, voter }.into());
 	}
 
-	delegate {
-		let caller = setup_caller::<T>();
-		let dao_id = setup_dao::<T>(caller.clone());
-		let delegator = caller;
-	}: _(RawOrigin::Signed(delegator.clone()), dao_id.clone(), Some(account("delegatee", 0, 0)))
-	verify {
-		let dao_id: BoundedVec<_, _> = dao_id.try_into().expect("fits");
-		assert_last_event::<T>(Event::Delegation { dao_id, delegator }.into());
-	}
-
 	set_governance_majority_vote {
 		let caller = setup_caller::<T>();
 		let dao_id = setup_dao::<T>(caller.clone());
