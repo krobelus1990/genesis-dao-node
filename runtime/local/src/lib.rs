@@ -366,8 +366,8 @@ construct_runtime!(
 		Utility: pallet_utility,
 		Multisig: pallet_multisig,
 		// Include the custom logic from the DAO pallets in the runtime.
-		DaoCore: pallet_dao_core,
 		Assets: pallet_dao_assets,
+		DaoCore: pallet_dao_core,
 		Votes: pallet_dao_votes,
 	}
 );
@@ -417,7 +417,7 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_dao_assets, Assets]
 		[pallet_dao_core, DaoCore]
-		[pallet_dao_votes, DaoVotes]
+		[pallet_dao_votes, Votes]
 	);
 }
 
