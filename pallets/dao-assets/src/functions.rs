@@ -1,7 +1,10 @@
 //! Functions for the Assets pallet.
 
 use super::*;
-use frame_support::{traits::Get, BoundedVec};
+use frame_support::{
+	traits::{BalanceStatus::Reserved, Get},
+	BoundedVec,
+};
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_std::{borrow::Borrow, fmt::Debug};
 
@@ -841,6 +844,20 @@ impl<T: Config> Pallet<T> {
 			});
 
 			Self::deposit_event(Event::MetadataSet { asset_id: id, name, symbol, decimals });
+			Ok(())
+		})
+	}
+
+	pub fn change_owner(id: T::AssetId, new_owner: T::AccountId) -> DispatchResult {
+		Asset::<T>::try_mutate(id, |maybe_details| {
+			let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
+			ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
+
+			// move metadata deposit to new owner
+			let deposit = Metadata::<T>::get(id).deposit;
+			T::Currency::repatriate_reserved(&details.owner, &new_owner, deposit, Reserved)?;
+
+			details.owner = new_owner;
 			Ok(())
 		})
 	}

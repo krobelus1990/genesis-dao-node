@@ -27,6 +27,7 @@ pub use frame_support::{
 	},
 	weights::Weight,
 };
+use pallet_dao_assets::{Pallet as Assets};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type CurrencyOf<T> = <T as Config>::Currency;
@@ -331,11 +332,23 @@ pub mod pallet {
 			new_owner: T::AccountId,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			let mut dao = Self::load_dao(dao_id)?;
-			ensure!(dao.owner == sender, Error::<T>::DaoSignerNotOwner);
-			dao.owner = new_owner.clone();
-			Self::deposit_event(Event::DaoOwnerChanged { dao_id: dao.id.clone(), new_owner });
-			<Daos<T>>::insert(dao.id.clone(), dao);
+			let dao_id: BoundedVec<_, _> =
+				dao_id.try_into().map_err(|_| Error::<T>::DaoIdInvalidLengthTooLong)?;
+			Daos::<T>::try_mutate(dao_id.clone(), |maybe_dao| -> DispatchResult {
+				let dao = maybe_dao.as_mut().ok_or(Error::<T>::DaoDoesNotExist)?;
+				ensure!(dao.owner == sender, Error::<T>::DaoSignerNotOwner);
+				if dao.owner == new_owner {
+					return Ok(());
+				}
+				// also change asset owner if token was issued
+				if let Some(asset_id) = dao.asset_id {
+					Assets::<T>::change_owner(asset_id.into(), new_owner.clone())?;
+				}
+
+				dao.owner = new_owner.clone();
+				Ok(())
+			})?;
+			Self::deposit_event(Event::DaoOwnerChanged { dao_id, new_owner });
 			Ok(())
 		}
 	}
