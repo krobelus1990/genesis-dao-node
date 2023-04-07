@@ -160,12 +160,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	/// Details of an asset.
-	pub type Asset<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		T::AssetId,
-		AssetDetails<T::Balance, T::AccountId>,
-	>;
+	pub type Asset<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AssetId, AssetDetails<T::Balance, T::AccountId>>;
 
 	#[pallet::storage]
 	/// The holdings of a specific account for a specific asset.
@@ -198,7 +194,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		T::AssetId,
-		AssetMetadata<DepositBalanceOf<T>, BoundedVec<u8, T::StringLimit>>,
+		AssetMetadata<BoundedVec<u8, T::StringLimit>>,
 		ValueQuery,
 	>;
 
@@ -273,7 +269,6 @@ pub mod pallet {
 					symbol.clone().try_into().expect("asset symbol is too long");
 
 				let metadata = AssetMetadata {
-					deposit: Zero::zero(),
 					name: bounded_name,
 					symbol: bounded_symbol,
 					decimals: *decimals,
@@ -595,12 +590,9 @@ pub mod pallet {
 			ensure!(d.status == AssetStatus::Live, Error::<T>::AssetNotLive);
 			ensure!(origin == d.owner, Error::<T>::NoPermission);
 
-			Metadata::<T>::try_mutate_exists(id, |metadata| {
-				let deposit = metadata.take().ok_or(Error::<T>::Unknown)?.deposit;
-				T::Currency::unreserve(&d.owner, deposit);
-				Self::deposit_event(Event::MetadataCleared { asset_id: id });
-				Ok(())
-			})
+			let _ = Metadata::<T>::take(id); // erase metadata
+			Self::deposit_event(Event::MetadataCleared { asset_id: id });
+			Ok(())
 		}
 
 		/// Approve an amount of asset for transfer by a delegated third-party account.

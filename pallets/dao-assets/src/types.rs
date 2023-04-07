@@ -63,11 +63,7 @@ pub struct AssetAccount<Balance> {
 }
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct AssetMetadata<DepositBalance, BoundedString> {
-	/// The balance deposited for this metadata.
-	///
-	/// This pays for the data stored in this struct.
-	pub(super) deposit: DepositBalance,
+pub struct AssetMetadata<BoundedString> {
 	/// The user friendly name of this asset. Limited in length by `StringLimit`.
 	pub(super) name: BoundedString,
 	/// The ticker symbol for this asset. Limited in length by `StringLimit`.
