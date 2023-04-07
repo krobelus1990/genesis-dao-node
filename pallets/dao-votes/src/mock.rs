@@ -114,6 +114,7 @@ impl pallet_dao_votes::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type ProposalDeposit = ConstU128<10>;
 	type FinalizeVotesLimit = ConstU32<1000>;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
