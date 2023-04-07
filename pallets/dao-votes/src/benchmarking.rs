@@ -25,9 +25,11 @@ fn add_voters<T: Config>(proposal_id: Vec<u8>, n: u32) {
 /// A whitelisted caller with enough funds
 fn setup_caller<T: Config>() -> T::AccountId {
 	let caller: T::AccountId = whitelisted_caller();
-	let balance = u32::MAX.into();
+	let min_balance = <T as DaoConfig>::Currency::minimum_balance();
+	let balance = min_balance * u32::MAX.into() * u32::MAX.into();
 	<T as DaoConfig>::Currency::issue(balance);
 	<T as DaoConfig>::Currency::make_free_balance_be(&caller, balance);
+	assert_eq!(<T as DaoConfig>::Currency::free_balance(&caller), balance);
 	caller
 }
 
@@ -37,8 +39,8 @@ fn setup_dao<T: Config>(caller: T::AccountId) -> Vec<u8> {
 	let dao_id: Vec<u8> = b"GDAO".to_vec();
 	let dao_name = b"Genesis DAO".to_vec();
 	let origin = RawOrigin::Signed(caller);
-	assert!(DaoCore::<T>::create_dao(origin.clone().into(), dao_id.clone(), dao_name,).is_ok());
-	assert!(DaoCore::<T>::issue_token(origin.into(), dao_id.clone(), 1000_u32.into()).is_ok());
+	assert_eq!(DaoCore::<T>::create_dao(origin.clone().into(), dao_id.clone(), dao_name), Ok(()));
+	assert_eq!(DaoCore::<T>::issue_token(origin.into(), dao_id.clone(), 1000_u32.into()), Ok(()));
 	dao_id
 }
 
@@ -49,14 +51,16 @@ fn setup_dao_with_governance<T: Config>(caller: T::AccountId) -> Vec<u8> {
 	let proposal_duration = 1_u32;
 	let proposal_token_deposit = 1_u32.into();
 	let minimum_majority_per_1024 = 10;
-	assert!(Votes::<T>::set_governance_majority_vote(
-		RawOrigin::Signed(caller).into(),
-		dao_id.clone(),
-		proposal_duration,
-		proposal_token_deposit,
-		minimum_majority_per_1024
-	)
-	.is_ok());
+	assert_eq!(
+		Votes::<T>::set_governance_majority_vote(
+			RawOrigin::Signed(caller).into(),
+			dao_id.clone(),
+			proposal_duration,
+			proposal_token_deposit,
+			minimum_majority_per_1024
+		),
+		Ok(())
+	);
 	dao_id
 }
 
@@ -68,14 +72,16 @@ fn setup_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> Vec<u8> {
 	let metadata = b"http://my.cool.proposal".to_vec();
 	// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
 	let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
-	assert!(Votes::<T>::create_proposal(
-		RawOrigin::Signed(caller).into(),
-		dao_id,
-		prop_id.clone(),
-		metadata,
-		hash
-	)
-	.is_ok());
+	assert_eq!(
+		Votes::<T>::create_proposal(
+			RawOrigin::Signed(caller).into(),
+			dao_id,
+			prop_id.clone(),
+			metadata,
+			hash
+		),
+		Ok(())
+	);
 	prop_id
 }
 

@@ -27,6 +27,9 @@ use pallet_dao_core::{
 	AccountIdOf, CurrencyOf, DaoIdOf, DepositBalanceOf, Error as DaoError, Pallet as Core,
 };
 
+pub mod weights;
+use weights::WeightInfo;
+
 type ProposalIdOf<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLengthId>;
 type ProposalOf<T> = Proposal<
 	ProposalIdOf<T>,
@@ -73,6 +76,9 @@ pub mod pallet {
 		/// Must be configured to result in a weight that makes each call fit in a block.
 		#[pallet::constant]
 		type FinalizeVotesLimit: Get<u32>;
+
+		/// Weight information for extrinsics in this pallet.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::event]
@@ -122,7 +128,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::create_proposal())]
 		pub fn create_proposal(
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,
@@ -182,7 +188,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::fault_proposal())]
 		pub fn fault_proposal(
 			origin: OriginFor<T>,
 			proposal_id: Vec<u8>,
@@ -214,7 +220,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::finalize_proposal(T::HistoryHorizon::get()))]
 		pub fn finalize_proposal(origin: OriginFor<T>, proposal_id: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let proposal_id: BoundedVec<_, _> =
@@ -316,7 +322,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::vote())]
 		pub fn vote(
 			origin: OriginFor<T>,
 			proposal_id: Vec<u8>,
@@ -349,7 +355,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(0)]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::set_governance_majority_vote())]
 		pub fn set_governance_majority_vote(
 			origin: OriginFor<T>,
 			dao_id: Vec<u8>,
