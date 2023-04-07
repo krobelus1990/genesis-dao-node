@@ -321,7 +321,7 @@ impl pallet_dao_assets::Config for Runtime {
 	type RemoveItemsLimit = ConstU32<1000>;
 	type StringLimit = AssetsStringLimit;
 	type HistoryHorizon = ConstU32<{5*144000}>; // a day is 14400 blocks of 6s
-	type WeightInfo = ();
+	type WeightInfo = pallet_dao_assets::weights::SubstrateWeight<Runtime>;
 
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -346,6 +346,7 @@ impl pallet_dao_votes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ProposalDeposit = ConstU128<UNITS>;
 	type FinalizeVotesLimit = ConstU32<1000>;
+	type WeightInfo = pallet_dao_votes::weights::SubstrateWeight<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
