@@ -165,7 +165,7 @@ fn lifecycle_should_work() {
 		assert!(Asset::<Test>::contains_key(asset_id));
 
 		assert_ok!(Assets::set_metadata(RuntimeOrigin::signed(1), asset_id, vec![0], vec![0], 12));
-		assert_eq!(Balances::reserved_balance(&1), 3);
+		assert_eq!(Balances::reserved_balance(&1), 0);
 		assert!(Metadata::<Test>::contains_key(asset_id));
 
 		Balances::make_free_balance_be(&10, 100);
@@ -462,8 +462,7 @@ fn set_metadata_should_work() {
 			Error::<Test>::BadMetadata,
 		);
 
-		// Successfully add metadata and take deposit
-		Balances::make_free_balance_be(&1, 30);
+		// Successfully add metadata
 		assert_ok!(Assets::set_metadata(
 			RuntimeOrigin::signed(1),
 			0,
@@ -471,31 +470,6 @@ fn set_metadata_should_work() {
 			vec![0u8; 10],
 			12
 		));
-		assert_eq!(Balances::free_balance(&1), 9);
-
-		// Update deposit
-		assert_ok!(Assets::set_metadata(
-			RuntimeOrigin::signed(1),
-			0,
-			vec![0u8; 10],
-			vec![0u8; 5],
-			12
-		));
-		assert_eq!(Balances::free_balance(&1), 14);
-		assert_ok!(Assets::set_metadata(
-			RuntimeOrigin::signed(1),
-			0,
-			vec![0u8; 10],
-			vec![0u8; 15],
-			12
-		));
-		assert_eq!(Balances::free_balance(&1), 4);
-
-		// Cannot over-reserve
-		assert_noop!(
-			Assets::set_metadata(RuntimeOrigin::signed(1), 0, vec![0u8; 20], vec![0u8; 20], 12),
-			BalancesError::<Test, _>::InsufficientBalance,
-		);
 
 		// Clear Metadata
 		assert!(Metadata::<Test>::contains_key(0));

@@ -1,10 +1,7 @@
 //! Functions for the Assets pallet.
 
 use super::*;
-use frame_support::{
-	traits::{BalanceStatus::Reserved, Get},
-	BoundedVec,
-};
+use frame_support::{traits::Get, BoundedVec};
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_std::{borrow::Borrow, fmt::Debug};
 
@@ -706,12 +703,9 @@ impl<T: Config> Pallet<T> {
 			ensure!(details.accounts == 0, Error::<T>::InUse);
 			ensure!(details.approvals == 0, Error::<T>::InUse);
 
-			let metadata = Metadata::<T>::take(id);
-			T::Currency::unreserve(&details.owner, metadata.deposit);
+			let _ = Metadata::<T>::take(id); // erase metadata
 			details.status = AssetStatus::Destroyed;
-
 			Self::deposit_event(Event::Destroyed { asset_id: id });
-
 			Ok(())
 		})
 	}
@@ -821,23 +815,8 @@ impl<T: Config> Pallet<T> {
 		ensure!(from == &d.owner, Error::<T>::NoPermission);
 
 		Metadata::<T>::try_mutate_exists(id, |metadata| {
-			let old_deposit = metadata.take().map_or(Zero::zero(), |m| m.deposit);
-			let new_deposit = T::MetadataDepositPerByte::get()
-				.saturating_mul(((name.len() + symbol.len()) as u32).into())
-				.saturating_add(T::MetadataDepositBase::get());
-
-			if new_deposit > old_deposit {
-				T::Currency::reserve(from, new_deposit - old_deposit)?;
-			} else {
-				T::Currency::unreserve(from, old_deposit - new_deposit);
-			}
-
-			*metadata = Some(AssetMetadata {
-				deposit: new_deposit,
-				name: bounded_name,
-				symbol: bounded_symbol,
-				decimals,
-			});
+			*metadata =
+				Some(AssetMetadata { name: bounded_name, symbol: bounded_symbol, decimals });
 
 			Self::deposit_event(Event::MetadataSet { asset_id: id, name, symbol, decimals });
 			Ok(())
@@ -848,11 +827,6 @@ impl<T: Config> Pallet<T> {
 		Asset::<T>::try_mutate(id, |maybe_details| {
 			let details = maybe_details.as_mut().ok_or(Error::<T>::Unknown)?;
 			ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
-
-			// move metadata deposit to new owner
-			let deposit = Metadata::<T>::get(id).deposit;
-			T::Currency::repatriate_reserved(&details.owner, &new_owner, deposit, Reserved)?;
-
 			details.owner = new_owner;
 			Ok(())
 		})

@@ -27,7 +27,8 @@ use sp_version::RuntimeVersion;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		AsEnsureOriginWithArg, ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo,
+		AsEnsureOriginWithArg, ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem,
+		Randomness, StorageInfo,
 	},
 	weights::{
 		constants::{
@@ -63,9 +64,7 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 /// Balance of an account.
 pub type Balance = u128;
 
-pub const UNITS: Balance = 1_000_000_000_000;
-pub const MILLICENTS: Balance = 1_000_000_000;
-pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
+pub const CENTS: Balance = 10_000_000_000_000_000; // assume this is worth about a cent.
 pub const DOLLARS: Balance = 100 * CENTS;
 
 pub const fn deposit(items: u32, bytes: u32) -> Balance {
@@ -264,13 +263,13 @@ parameter_types! {
 }
 
 impl pallet_multisig::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeCall = RuntimeCall;
-    type Currency = Balances;
-    type DepositBase = MultisigDepositBase;
-    type DepositFactor = MultisigDepositFactor;
-    type MaxSignatories = ConstU32<100>;
-    type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type DepositBase = MultisigDepositBase;
+	type DepositFactor = MultisigDepositFactor;
+	type MaxSignatories = ConstU32<100>;
+	type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -320,8 +319,8 @@ impl pallet_dao_assets::Config for Runtime {
 	type ApprovalDeposit = ApprovalDeposit;
 	type RemoveItemsLimit = ConstU32<1000>;
 	type StringLimit = AssetsStringLimit;
-	type HistoryHorizon = ConstU32<{5*144000}>; // a day is 14400 blocks of 6s
-	type WeightInfo = ();
+	type HistoryHorizon = ConstU32<{ 5 * 144000 }>; // a day is 14400 blocks of 6s
+	type WeightInfo = pallet_dao_assets::weights::SubstrateWeight<Runtime>;
 
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -335,7 +334,7 @@ impl pallet_dao_core::Config for Runtime {
 	type MaxLengthName = ConstU32<32>;
 	type MaxLengthMetadata = ConstU32<256>;
 	type Currency = Balances;
-	type DaoDeposit = ConstU128<{10 * UNITS}>;
+	type DaoDeposit = ConstU128<{ 10 * DOLLARS }>;
 	type TokenUnits = ConstU8<9>;
 	type AssetId = u32;
 	type WeightInfo = pallet_dao_core::weights::SubstrateWeight<Runtime>;
@@ -344,8 +343,9 @@ impl pallet_dao_core::Config for Runtime {
 // DAO votes
 impl pallet_dao_votes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type ProposalDeposit = ConstU128<UNITS>;
+	type ProposalDeposit = ConstU128<{ 10 * DOLLARS }>;
 	type FinalizeVotesLimit = ConstU32<1000>;
+	type WeightInfo = pallet_dao_votes::weights::SubstrateWeight<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
