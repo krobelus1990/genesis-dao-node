@@ -72,6 +72,8 @@ Running the frontend locally:
 ## Manual Voting
 The voting process user interface is part of the third milestone. We therefore walk you through the entire process in polkadot.js.org whilst we are busy implementing it in milestone 3.
 
+You can use [our testnet](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fnode.genesis-dao.org#/explorer) for this walkthrough.
+
 If you walk through the frontend you have a DAO setup with a token issued and it is released to a multisig council. We will create a fresh DAO within polkadot.js.org during this walkthrough to make sure everyone knows what we are doing.
 
 ### Create a DAO with an identifier and a name
