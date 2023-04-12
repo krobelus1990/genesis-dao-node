@@ -140,7 +140,7 @@ benchmarks! {
 
 		let name = vec![0u8; n as usize];
 		let symbol = vec![0u8; s as usize];
-		let decimals = 12;
+		let decimals = 10;
 
 		let (asset_id, caller) = create_default_asset::<T>();
 		T::Currency::make_free_balance_be(&caller, DepositBalanceOf::<T>::max_value());

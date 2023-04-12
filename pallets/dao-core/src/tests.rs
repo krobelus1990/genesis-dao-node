@@ -1,5 +1,5 @@
-use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok};
+use crate::{mock::*, Config, Error};
+use frame_support::{assert_noop, assert_ok, traits::TypedGet};
 use pallet_balances::Error as BalancesError;
 
 #[test]
@@ -133,7 +133,7 @@ fn issues_a_token() {
 		use frame_support::traits::tokens::fungibles::metadata::Inspect;
 		assert_eq!(Assets::name(asset_id), b"Genesis DAO".to_vec());
 		assert_eq!(Assets::symbol(asset_id), b"GDAO".to_vec());
-		assert_eq!(Assets::decimals(asset_id), 9);
+		assert_eq!(Assets::decimals(asset_id), <Test as Config>::TokenUnits::get());
 
 		// payout
 		assert_eq!(Assets::balance(asset_id, &dao.owner), 1000);

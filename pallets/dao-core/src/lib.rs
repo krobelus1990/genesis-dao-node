@@ -246,7 +246,7 @@ pub mod pallet {
 			ensure!(dao.owner == sender, Error::<T>::DaoSignerNotOwner);
 			ensure!(dao.asset_id.is_none(), Error::<T>::DaoTokenAlreadyIssued);
 
-			// // create a fresh asset
+			// create a fresh asset
 			<CurrentAssetId<T>>::mutate(|asset_id| asset_id.saturating_inc());
 
 			<pallet_dao_assets::pallet::Pallet<T>>::do_force_create(

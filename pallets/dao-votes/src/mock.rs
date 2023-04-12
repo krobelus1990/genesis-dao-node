@@ -105,7 +105,7 @@ impl pallet_dao_core::Config for Test {
 	type MaxLengthMetadata = ConstU32<256>;
 	type Currency = Balances;
 	type DaoDeposit = ConstU128<10>;
-	type TokenUnits = ConstU8<9>;
+	type TokenUnits = ConstU8<10>;
 	type AssetId = u32;
 	type WeightInfo = ();
 }
