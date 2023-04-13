@@ -127,15 +127,6 @@ pub mod pallet {
 		/// attributes.
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		/// The basic amount of funds that must be reserved when adding metadata to your asset.
-		#[pallet::constant]
-		type MetadataDepositBase: Get<DepositBalanceOf<Self>>;
-
-		/// The additional funds that must be reserved for the number of bytes you store in your
-		/// metadata.
-		#[pallet::constant]
-		type MetadataDepositPerByte: Get<DepositBalanceOf<Self>>;
-
 		/// The amount of funds that must be reserved when creating a new approval.
 		#[pallet::constant]
 		type ApprovalDeposit: Get<DepositBalanceOf<Self>>;
@@ -537,62 +528,6 @@ pub mod pallet {
 
 			let f = TransferFlags { keep_alive: true, best_effort: false, burn_dust: false };
 			Self::do_transfer(id, &source, &dest, amount, f).map(|_| ())
-		}
-
-		/// Set the metadata for an asset.
-		///
-		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
-		///
-		/// Funds of sender are reserved according to the formula:
-		/// `MetadataDepositBase + MetadataDepositPerByte * (name.len + symbol.len)` taking into
-		/// account any already reserved funds.
-		///
-		/// - `id`: The identifier of the asset to update.
-		/// - `name`: The user friendly name of this asset. Limited in length by `StringLimit`.
-		/// - `symbol`: The exchange symbol for this asset. Limited in length by `StringLimit`.
-		/// - `decimals`: The number of decimals this asset uses to represent one unit.
-		///
-		/// Emits `MetadataSet`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(17)]
-		#[pallet::weight(T::WeightInfo::set_metadata(name.len() as u32, symbol.len() as u32))]
-		pub fn set_metadata(
-			origin: OriginFor<T>,
-			id: T::AssetIdParameter,
-			name: Vec<u8>,
-			symbol: Vec<u8>,
-			decimals: u8,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-			Self::do_set_metadata(id, &origin, name, symbol, decimals)
-		}
-
-		/// Clear the metadata for an asset.
-		///
-		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
-		///
-		/// Any deposit is freed for the asset owner.
-		///
-		/// - `id`: The identifier of the asset to clear.
-		///
-		/// Emits `MetadataCleared`.
-		///
-		/// Weight: `O(1)`
-		#[pallet::call_index(18)]
-		#[pallet::weight(T::WeightInfo::clear_metadata())]
-		pub fn clear_metadata(origin: OriginFor<T>, id: T::AssetIdParameter) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let id: T::AssetId = id.into();
-
-			let d = Asset::<T>::get(id).ok_or(Error::<T>::Unknown)?;
-			ensure!(d.status == AssetStatus::Live, Error::<T>::AssetNotLive);
-			ensure!(origin == d.owner, Error::<T>::NoPermission);
-
-			let _ = Metadata::<T>::take(id); // erase metadata
-			Self::deposit_event(Event::MetadataCleared { asset_id: id });
-			Ok(())
 		}
 
 		/// Approve an amount of asset for transfer by a delegated third-party account.

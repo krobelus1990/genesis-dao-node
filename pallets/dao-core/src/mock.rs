@@ -1,19 +1,18 @@
 use crate as pallet_dao_core;
-use frame_support::traits::{
-	AsEnsureOriginWithArg, ConstU8, ConstU16, ConstU32, ConstU64, ConstU128
+use frame_support::{
+	parameter_types,
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU16, ConstU32, ConstU64, ConstU8},
 };
-use frame_support::parameter_types;
 use frame_system as system;
 use sp_core::H256;
 
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup}
+	traits::{BlakeTwo256, IdentityLookup},
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
-
 
 pub(crate) type Balance = u128;
 
@@ -28,9 +27,9 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
-		DaoCore: pallet_dao_core,
 		Balances: pallet_balances,
 		Assets: pallet_dao_assets,
+		DaoCore: pallet_dao_core,
 	}
 );
 
@@ -77,8 +76,6 @@ parameter_types! {
 	// we're not really using this, as reservation is via DAO, but whatever
 	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = 1;
-	pub const MetadataDepositPerByte: Balance = 1;
 }
 
 impl pallet_dao_assets::Config for Test {
@@ -89,13 +86,13 @@ impl pallet_dao_assets::Config for Test {
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<Self::AccountId>>;
-	type MetadataDepositBase = MetadataDepositBase;
-	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;
 	type RemoveItemsLimit = ConstU32<1000>;
 	type StringLimit = AssetsStringLimit;
 	type HistoryHorizon = ConstU32<4200>;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 impl pallet_dao_core::Config for Test {
@@ -106,22 +103,17 @@ impl pallet_dao_core::Config for Test {
 	type MaxLengthMetadata = ConstU32<256>;
 	type Currency = Balances;
 	type DaoDeposit = ConstU128<10>;
-    type TokenUnits = ConstU8<10>;
+	type TokenUnits = ConstU8<10>;
 	type AssetId = u32;
 	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
-
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![
-			(1, 1000),
-		],
-	}
-	.assimilate_storage(&mut t)
-	.unwrap();
+	pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 1000)] }
+		.assimilate_storage(&mut t)
+		.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));

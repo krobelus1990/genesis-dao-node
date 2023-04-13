@@ -75,8 +75,6 @@ impl Config for Test {
 	type Currency = Balances;
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
 	type ForceOrigin = frame_system::EnsureRoot<u64>;
-	type MetadataDepositBase = ConstU64<1>;
-	type MetadataDepositPerByte = ConstU64<1>;
 	type ApprovalDeposit = ConstU64<1>;
 	type StringLimit = ConstU32<50>;
 	type HistoryHorizon = ConstU32<30>;
