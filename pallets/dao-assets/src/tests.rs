@@ -164,7 +164,7 @@ fn lifecycle_should_work() {
 		assert_ok!(Assets::do_force_create(asset_id, 1, 1));
 		assert!(Asset::<Test>::contains_key(asset_id));
 
-		assert_ok!(Assets::set_metadata(RuntimeOrigin::signed(1), asset_id, vec![0], vec![0], 12));
+		assert_ok!(Assets::do_set_metadata(asset_id, &1, vec![0], vec![0], 10));
 		assert_eq!(Balances::reserved_balance(&1), 0);
 		assert!(Metadata::<Test>::contains_key(asset_id));
 
@@ -442,44 +442,28 @@ fn set_metadata_should_work() {
 	new_test_ext().execute_with(|| {
 		// Cannot add metadata to unknown asset
 		assert_noop!(
-			Assets::set_metadata(RuntimeOrigin::signed(1), 0, vec![0u8; 10], vec![0u8; 10], 12),
+			Assets::do_set_metadata(0, &1, vec![0u8; 10], vec![0u8; 10], 10),
 			Error::<Test>::Unknown,
 		);
 		assert_ok!(Assets::do_force_create(0, 1, 1));
 		// Cannot add metadata to unowned asset
 		assert_noop!(
-			Assets::set_metadata(RuntimeOrigin::signed(2), 0, vec![0u8; 10], vec![0u8; 10], 12),
+			Assets::do_set_metadata(0, &2, vec![0u8; 10], vec![0u8; 10], 10),
 			Error::<Test>::NoPermission,
 		);
 
 		// Cannot add oversized metadata
 		assert_noop!(
-			Assets::set_metadata(RuntimeOrigin::signed(1), 0, vec![0u8; 100], vec![0u8; 10], 12),
+			Assets::do_set_metadata(0, &1, vec![0u8; 100], vec![0u8; 10], 10),
 			Error::<Test>::BadMetadata,
 		);
 		assert_noop!(
-			Assets::set_metadata(RuntimeOrigin::signed(1), 0, vec![0u8; 10], vec![0u8; 100], 12),
+			Assets::do_set_metadata(0, &1, vec![0u8; 10], vec![0u8; 100], 10),
 			Error::<Test>::BadMetadata,
 		);
 
 		// Successfully add metadata
-		assert_ok!(Assets::set_metadata(
-			RuntimeOrigin::signed(1),
-			0,
-			vec![0u8; 10],
-			vec![0u8; 10],
-			12
-		));
-
-		// Clear Metadata
-		assert!(Metadata::<Test>::contains_key(0));
-		assert_noop!(
-			Assets::clear_metadata(RuntimeOrigin::signed(2), 0),
-			Error::<Test>::NoPermission
-		);
-		assert_noop!(Assets::clear_metadata(RuntimeOrigin::signed(1), 1), Error::<Test>::Unknown);
-		assert_ok!(Assets::clear_metadata(RuntimeOrigin::signed(1), 0));
-		assert!(!Metadata::<Test>::contains_key(0));
+		assert_ok!(Assets::do_set_metadata(0, &1, vec![0u8; 10], vec![0u8; 10], 10));
 	});
 }
 

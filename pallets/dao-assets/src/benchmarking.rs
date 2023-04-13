@@ -134,32 +134,6 @@ benchmarks! {
 		assert_last_event::<T>(Event::Transferred { asset_id: asset_id.into(), from: caller, to: target, amount }.into());
 	}
 
-	set_metadata {
-		let n in 0 .. T::StringLimit::get();
-		let s in 0 .. T::StringLimit::get();
-
-		let name = vec![0u8; n as usize];
-		let symbol = vec![0u8; s as usize];
-		let decimals = 10;
-
-		let (asset_id, caller) = create_default_asset::<T>();
-		T::Currency::make_free_balance_be(&caller, DepositBalanceOf::<T>::max_value());
-	}: _(SystemOrigin::Signed(caller), asset_id, name.clone(), symbol.clone(), decimals)
-	verify {
-		assert_last_event::<T>(Event::MetadataSet { asset_id: asset_id.into(), name, symbol, decimals }.into());
-	}
-
-	clear_metadata {
-		let (asset_id, caller) = create_default_asset::<T>();
-		T::Currency::make_free_balance_be(&caller, DepositBalanceOf::<T>::max_value());
-		let dummy = vec![0u8; T::StringLimit::get() as usize];
-		let origin = SystemOrigin::Signed(caller.clone()).into();
-		Assets::<T>::set_metadata(origin, asset_id, dummy.clone(), dummy, 12)?;
-	}: _(SystemOrigin::Signed(caller), asset_id)
-	verify {
-		assert_last_event::<T>(Event::MetadataCleared { asset_id: asset_id.into() }.into());
-	}
-
 	approve_transfer {
 		let (asset_id, caller) = create_default_minted_asset::<T>(100u32.into());
 		T::Currency::make_free_balance_be(&caller, DepositBalanceOf::<T>::max_value());

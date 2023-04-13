@@ -76,8 +76,6 @@ impl pallet_balances::Config for Test {
 parameter_types! {
 	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = 1;
-	pub const MetadataDepositPerByte: Balance = 1;
 }
 
 impl pallet_dao_assets::Config for Test {
@@ -88,13 +86,13 @@ impl pallet_dao_assets::Config for Test {
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<Self::AccountId>>;
-	type MetadataDepositBase = MetadataDepositBase;
-	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;
 	type RemoveItemsLimit = ConstU32<1000>;
 	type StringLimit = AssetsStringLimit;
 	type HistoryHorizon = ConstU32<4200>;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 impl pallet_dao_core::Config for Test {

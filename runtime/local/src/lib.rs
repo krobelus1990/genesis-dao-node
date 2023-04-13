@@ -301,8 +301,6 @@ impl pallet_utility::Config for Runtime {
 parameter_types! {
 	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
 	pub const AssetsStringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = deposit(1, 68);
-	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
 }
 
 // DAO assets
@@ -314,8 +312,6 @@ impl pallet_dao_assets::Config for Runtime {
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-	type MetadataDepositBase = MetadataDepositBase;
-	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;
 	type RemoveItemsLimit = ConstU32<1000>;
 	type StringLimit = AssetsStringLimit;
