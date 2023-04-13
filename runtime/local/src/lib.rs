@@ -64,10 +64,10 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 /// Balance of an account.
 pub type Balance = u128;
 
-pub const PLANCK: Balance = 1
-pub const MICRODOT: Balance = PLANCK * 10_000
-pub const MILLIDOT: Balance = PLANCK * 10_000_000
-pub const DOT: Balance = PLANCK * 10_000_000_000
+pub const PLANCK: Balance = 1;
+pub const MICRODOT: Balance = PLANCK * 10_000;
+pub const MILLIDOT: Balance = PLANCK * 10_000_000;
+pub const DOT: Balance = PLANCK * 10_000_000_000;
 
 pub const fn deposit(items: u32, bytes: u32) -> Balance {
 	items as Balance * 150 * MILLIDOT + bytes as Balance * 60 * MILLIDOT
@@ -336,7 +336,7 @@ impl pallet_dao_core::Config for Runtime {
 	type MaxLengthName = ConstU32<32>;
 	type MaxLengthMetadata = ConstU32<256>;
 	type Currency = Balances;
-	type DaoDeposit = ConstU128<{ 10 * DOTS }>;
+	type DaoDeposit = ConstU128<{ 10 * DOT }>;
 	type TokenUnits = ConstU8<10>;
 	type AssetId = u32;
 	type WeightInfo = pallet_dao_core::weights::SubstrateWeight<Runtime>;
@@ -345,7 +345,7 @@ impl pallet_dao_core::Config for Runtime {
 // DAO votes
 impl pallet_dao_votes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type ProposalDeposit = ConstU128<{ 10 * DOTS }>;
+	type ProposalDeposit = ConstU128<{ 10 * DOT }>;
 	type FinalizeVotesLimit = ConstU32<1000>;
 	type WeightInfo = pallet_dao_votes::weights::SubstrateWeight<Runtime>;
 }
