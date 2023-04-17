@@ -10,6 +10,7 @@ This is the central node of the Genesis DAO Node.
 The fastest way to get a node up and running is with docker compose:
 
 ```shell
+docker compose build
 docker compose up
 ```
 
