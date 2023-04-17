@@ -6,6 +6,15 @@ This is the central node of the Genesis DAO Node.
 
 ## Getting Started
 
+### Docker setup
+The fastest way to get a node up and running is with docker compose:
+
+```shell
+docker compose up
+```
+
+### Building from source
+
 You can run the node simply with these commands:
 
 ```shell
