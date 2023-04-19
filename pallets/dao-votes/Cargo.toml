@@ -43,6 +43,8 @@ std = [
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
+	"pallet-dao-assets/runtime-benchmarks",
+	"pallet-dao-core/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime"

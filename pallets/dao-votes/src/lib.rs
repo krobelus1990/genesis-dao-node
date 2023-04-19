@@ -42,7 +42,7 @@ type ProposalOf<T> = Proposal<
 
 type GovernanceOf<T> = Governance<AssetBalanceOf<T>>;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 
 	use super::*;
@@ -100,6 +100,9 @@ pub mod pallet {
 		ProposalCounting {
 			proposal_id: ProposalIdOf<T>,
 		},
+		ProposalImplemented {
+			proposal_id: ProposalIdOf<T>,
+		},
 		VoteCast {
 			proposal_id: ProposalIdOf<T>,
 			voter: AccountIdOf<T>,
@@ -120,7 +123,8 @@ pub mod pallet {
 		ProposalIdInvalidLengthTooLong,
 		ProposalAlreadyExists,
 		ProposalDoesNotExist,
-		ProposalIsNotActive,
+		ProposalStatusNotRunning,
+		ProposalStatusNotAccepted,
 		ProposalDurationHasNotPassed,
 		ProposalDurationHasPassed,
 		SenderIsNotDaoOwner,
@@ -176,7 +180,7 @@ pub mod pallet {
 					dao_id,
 					creator: sender,
 					birth_block,
-					status: ProposalStatus::Active,
+					status: ProposalStatus::Running,
 					in_favor: Zero::zero(),
 					against: Zero::zero(),
 					meta,
@@ -231,18 +235,18 @@ pub mod pallet {
 			let mut proposal = <Proposals<T>>::try_get(proposal_id.clone())
 				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
 
-			// check that the proposal is currently active or counting
+			// check that the proposal is currently running or counting
 			ensure!(
-				proposal.status == ProposalStatus::Active ||
+				proposal.status == ProposalStatus::Running ||
 					proposal.status == ProposalStatus::Counting,
-				Error::<T>::ProposalIsNotActive
+				Error::<T>::ProposalStatusNotRunning
 			);
 			let governance =
 				<Governances<T>>::get(&proposal.dao_id).ok_or(Error::<T>::GovernanceNotSet)?;
 			let current_block = <frame_system::Pallet<T>>::block_number();
 
 			// check that the proposal has run for its entire duration
-			if proposal.status == ProposalStatus::Active {
+			if proposal.status == ProposalStatus::Running {
 				ensure!(
 					current_block - proposal.birth_block > governance.proposal_duration.into(),
 					Error::<T>::ProposalDurationHasNotPassed
@@ -337,8 +341,8 @@ pub mod pallet {
 			let proposal = <Proposals<T>>::try_get(proposal_id.clone())
 				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
 
-			// check that the proposal is active
-			ensure!(proposal.status == ProposalStatus::Active, Error::<T>::ProposalIsNotActive);
+			// check that the proposal is running
+			ensure!(proposal.status == ProposalStatus::Running, Error::<T>::ProposalStatusNotRunning);
 
 			let governance =
 				<Governances<T>>::get(&proposal.dao_id).ok_or(Error::<T>::GovernanceNotSet)?;
@@ -377,6 +381,34 @@ pub mod pallet {
 				proposal_token_deposit,
 				minimum_majority_per_1024,
 			});
+			Ok(())
+		}
+
+		#[pallet::call_index(7)]
+		//#[pallet::weight(<T as pallet::Config>::WeightInfo::mark_implemented())]
+		pub fn mark_implemented(origin: OriginFor<T>, proposal_id: Vec<u8>) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+
+			let proposal_id: BoundedVec<_, _> =
+				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
+
+			<Proposals<T>>::try_mutate(proposal_id.clone(), |maybe_proposal| -> DispatchResult {
+				let proposal = maybe_proposal.as_mut().ok_or(Error::<T>::ProposalDoesNotExist)?;
+				let dao = pallet_dao_core::Daos::<T>::get(&proposal.dao_id)
+					.ok_or(DaoError::<T>::DaoDoesNotExist)?;
+				ensure!(dao.owner == sender, DaoError::<T>::DaoSignerNotOwner);
+
+				// check that the proposal has been accepted
+				ensure!(
+					proposal.status == ProposalStatus::Accepted,
+					Error::<T>::ProposalStatusNotAccepted
+				);
+
+				proposal.status = ProposalStatus::Implemented;
+				Ok(())
+			})?;
+
+			Self::deposit_event(Event::<T>::ProposalImplemented { proposal_id });
 			Ok(())
 		}
 	}

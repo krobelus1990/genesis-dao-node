@@ -22,9 +22,10 @@ pub struct Proposal<Id, DaoId, AccountId, BlockId, Balance, Metadata> {
 #[derive(Clone, Copy, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalStatus {
 	#[default]
-	Active,
+	Running,
 	Counting,
 	Accepted,
 	Rejected,
 	Faulty,
+	Implemented,
 }

@@ -9,6 +9,7 @@ use frame_system::RawOrigin;
 
 use crate::Pallet as Votes;
 use pallet_dao_core::{Config as DaoConfig, Currency, Pallet as DaoCore};
+use frame_system::{Pallet as System, Config as SystemConfig};
 
 const SEED: u32 = 0;
 
@@ -48,7 +49,7 @@ fn setup_dao<T: Config>(caller: T::AccountId) -> Vec<u8> {
 /// - `caller`: AccountId of the dao creator
 fn setup_dao_with_governance<T: Config>(caller: T::AccountId) -> Vec<u8> {
 	let dao_id = setup_dao::<T>(caller.clone());
-	let proposal_duration = 1_u32;
+	let proposal_duration = 0_u32;
 	let proposal_token_deposit = 1_u32.into();
 	let minimum_majority_per_1024 = 10;
 	assert_eq!(
@@ -85,8 +86,39 @@ fn setup_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> Vec<u8> {
 	prop_id
 }
 
+/// Creates a DAO for the given caller with a governance set and a proposal created and accepted
+/// - `caller`: AccountId of the dao creator
+/// - `dao_id`: id of the dao
+fn setup_accepted_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> Vec<u8> {
+	let prop_id = setup_proposal::<T>(caller.clone(), dao_id);
+	assert_eq!(
+		Votes::<T>::vote(RawOrigin::Signed(caller.clone()).into(), prop_id.clone(), Some(true)),
+		Ok(())
+	);
+	run_to_block::<T>(System::<T>::block_number() + 1_u32.into());
+	assert_eq!(
+		Votes::<T>::finalize_proposal(RawOrigin::Signed(caller).into(), prop_id.clone()),
+		Ok(())
+	);
+	prop_id
+}
+
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
+}
+
+fn run_to_block<T: Config>(n: <T as SystemConfig>::BlockNumber) {
+	use frame_support::traits::{OnFinalize, OnInitialize};
+	while System::<T>::block_number() < n {
+		let mut block = System::<T>::block_number();
+		Assets::<T>::on_finalize(block);
+		System::<T>::on_finalize(block);
+		System::<T>::reset_events();
+		block += 1_u32.into();
+		System::<T>::set_block_number(block);
+		System::<T>::on_initialize(block);
+		Assets::<T>::on_initialize(block);
+	}
 }
 
 benchmarks! {
@@ -149,6 +181,16 @@ benchmarks! {
 	verify {
 		let dao_id: BoundedVec<_, _> = dao_id.try_into().expect("fits");
 		assert_last_event::<T>(Event::SetGovernanceMajorityVote { dao_id, proposal_duration, proposal_token_deposit, minimum_majority_per_1024 }.into());
+	}
+
+	mark_implemented {
+		let caller = setup_caller::<T>();
+		let dao_id = setup_dao_with_governance::<T>(caller.clone());
+		let proposal_id = setup_accepted_proposal::<T>(caller.clone(), dao_id);
+	}: _(RawOrigin::Signed(caller.clone()), proposal_id.clone())
+	verify {
+		let proposal_id: BoundedVec<_, _> = proposal_id.try_into().expect("fits");
+		assert_last_event::<T>(Event::ProposalImplemented { proposal_id }.into());
 	}
 
 	impl_benchmark_test_suite!(Votes, crate::mock::new_test_ext(), crate::mock::Test)

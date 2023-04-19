@@ -141,7 +141,7 @@ pub mod pallet {
 	/// Key-Value Store of all _DAOs_, with the key being the `dao_id`.
 	#[pallet::storage]
 	#[pallet::getter(fn get_dao)]
-	pub(super) type Daos<T: Config> = StorageMap<_, Blake2_128Concat, DaoIdOf<T>, DaoOf<T>>;
+	pub type Daos<T: Config> = StorageMap<_, Blake2_128Concat, DaoIdOf<T>, DaoOf<T>>;
 
 	/// Internal incrementor of all assets issued by this module.
 	/// The first asset starts with _1_ (sic!, not 0) and then the id is assigned by order of
