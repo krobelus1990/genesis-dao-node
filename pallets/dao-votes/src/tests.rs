@@ -330,7 +330,6 @@ fn voting_outcome_unsuccessful_proposal() {
 			hash
 		));
 		let voter = 2;
-		//dbg!(Assets::balance(origin
 		assert_ok!(Assets::transfer(origin.clone(), 1, voter, 500));
 		assert_ok!(DaoVotes::vote(RuntimeOrigin::signed(voter), prop_id.clone(), Some(true)));
 		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), Some(false)));
@@ -386,8 +385,74 @@ fn voting_outcome_successful_proposal() {
 		let block = System::block_number() + 1 + duration as u64;
 		run_to_block(block);
 		assert_ok!(DaoVotes::finalize_proposal(origin, prop_id.clone()));
+
 		let bounded_prop_id: BoundedVec<_, _> = prop_id.try_into().unwrap();
 		let proposal = Proposals::<Test>::get(bounded_prop_id).unwrap();
 		assert_eq!(proposal.status, ProposalStatus::Accepted);
+	})
+}
+
+
+#[test]
+fn mark_accepted_proposal_as_implemented() {
+	new_test_ext().execute_with(|| {
+		let dao_id = b"DAO".to_vec();
+		let dao_name = b"TEST DAO".to_vec();
+		let prop_id = b"PROP".to_vec();
+		let origin = RuntimeOrigin::signed(1);
+
+		assert_noop!(
+			DaoVotes::mark_implemented(origin.clone(), prop_id.clone()),
+			Error::<Test>::ProposalDoesNotExist
+		);
+
+		let metadata = b"http://my.cool.proposal".to_vec();
+		// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
+		let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+		// preparation: create a DAO
+		assert_ok!(DaoCore::create_dao(origin.clone(), dao_id.clone(), dao_name));
+		// preparation: issue token
+		assert_ok!(DaoCore::issue_token(origin.clone(), dao_id.clone(), 1001));
+		// preparation: set governance
+		let duration = 0;
+		let token_deposit = 100;
+		let minimum_majority_per_1024 = 0;
+		assert_ok!(DaoVotes::set_governance_majority_vote(
+			origin.clone(),
+			dao_id.clone(),
+			duration,
+			token_deposit,
+			minimum_majority_per_1024
+		));
+		// preparation: create a proposal
+		assert_ok!(DaoVotes::create_proposal(
+			origin.clone(),
+			dao_id,
+			prop_id.clone(),
+			metadata,
+			hash
+		));
+
+		assert_noop!(
+			DaoVotes::mark_implemented(origin.clone(), prop_id.clone()),
+			Error::<Test>::ProposalStatusNotAccepted
+		);
+
+		let voter = 2;
+		assert_ok!(Assets::transfer(origin.clone(), 1, voter, 501));
+		assert_ok!(DaoVotes::vote(RuntimeOrigin::signed(voter), prop_id.clone(), Some(true)));
+		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), Some(false)));
+
+		let block = System::block_number() + 1 + duration as u64;
+		run_to_block(block);
+		assert_ok!(DaoVotes::finalize_proposal(origin.clone(), prop_id.clone()));
+
+		let bounded_prop_id: BoundedVec<_, _> = prop_id.clone().try_into().unwrap();
+		let proposal = Proposals::<Test>::get(bounded_prop_id.clone()).unwrap();
+		assert_eq!(proposal.status, ProposalStatus::Accepted);
+
+		assert_ok!(DaoVotes::mark_implemented(origin, prop_id));
+		let proposal = Proposals::<Test>::get(bounded_prop_id).unwrap();
+		assert_eq!(proposal.status, ProposalStatus::Implemented);
 	})
 }
