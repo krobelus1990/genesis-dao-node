@@ -118,6 +118,7 @@ pub mod pallet {
 		DaoTokenNotYetIssued,
 		GovernanceNotSet,
 		ProposalIdInvalidLengthTooLong,
+		ProposalAlreadyExists,
 		ProposalDoesNotExist,
 		ProposalIsNotActive,
 		ProposalDurationHasNotPassed,
@@ -143,13 +144,13 @@ pub mod pallet {
 			let governance =
 				<Governances<T>>::get(dao_id.clone()).ok_or(Error::<T>::GovernanceNotSet)?;
 
+			let proposal_id: BoundedVec<_, _> =
+				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
+			ensure!(!<Proposals<T>>::contains_key(&proposal_id), Error::<T>::ProposalAlreadyExists);
 			let meta: BoundedVec<_, _> =
 				meta.try_into().map_err(|_| DaoError::<T>::MetadataInvalidLengthTooLong)?;
 			let hash: BoundedVec<_, _> =
 				hash.try_into().map_err(|_| DaoError::<T>::HashInvalidWrongLength)?;
-
-			let proposal_id: BoundedVec<_, _> =
-				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			let deposit = <T as Config>::ProposalDeposit::get();
 

@@ -82,10 +82,16 @@ fn can_create_a_proposal() {
 		));
 
 		// test creating a proposal
-		assert_ok!(DaoVotes::create_proposal(origin, dao_id, prop_id.clone(), metadata, hash));
+		assert_ok!(DaoVotes::create_proposal(
+			origin.clone(),
+			dao_id.clone(),
+			prop_id.clone(),
+			metadata.clone(),
+			hash.clone()
+		));
 
 		// check that a proposal exists with the given id
-		let bounded_prop_id: BoundedVec<_, _> = prop_id.try_into().unwrap();
+		let bounded_prop_id: BoundedVec<_, _> = prop_id.clone().try_into().unwrap();
 		assert!(<Proposals<Test>>::contains_key(bounded_prop_id));
 
 		// creating a proposal should reserve currency
@@ -98,6 +104,12 @@ fn can_create_a_proposal() {
 		assert_eq!(
 			pallet_dao_assets::pallet::Pallet::<Test>::reserved(asset_id, sender),
 			token_deposit
+		);
+
+		// test that trying to overwrite a proposal fails
+		assert_noop!(
+			DaoVotes::create_proposal(origin, dao_id, prop_id, metadata, hash),
+			Error::<Test>::ProposalAlreadyExists
 		);
 	});
 }
