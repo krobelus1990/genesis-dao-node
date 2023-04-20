@@ -24,18 +24,16 @@ mod types;
 
 pub use types::*;
 
-use scale_info::TypeInfo;
-use sp_runtime::{
-	traits::{
-		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, Saturating, StaticLookup, Zero,
-	},
-	ArithmeticError, TokenError,
-};
-
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
 	ensure,
 	pallet_prelude::DispatchResultWithPostInfo,
+	sp_runtime::{
+		traits::{
+			AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, Saturating, StaticLookup, Zero,
+		},
+		ArithmeticError, TokenError,
+	},
 	storage::KeyPrefixIterator,
 	traits::{
 		tokens::{fungibles, DepositConsequence, WithdrawConsequence},
@@ -44,6 +42,7 @@ use frame_support::{
 	BoundedBTreeMap,
 };
 use frame_system::Config as SystemConfig;
+use scale_info::TypeInfo;
 
 pub use weights::WeightInfo;
 
