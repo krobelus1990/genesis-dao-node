@@ -7,12 +7,21 @@ This is the central node of the Genesis DAO Node.
 ## Getting Started
 
 ### Docker setup
-The fastest way to get a node up and running is with docker compose:
+The fastest way to get the system up and running is with docker compose:
 
 ```shell
 docker compose build
 docker compose up
 ```
+
+> This setups the entire system, including frontend and services. It may take a while.
+
+Afterwards you have a [frontend](http://localhost:3000/), [api](http://localhost:8000/) and [local node](https://polkadot.js.org/apps/?rpc=ws%3A%2F%2Flocalhost:9944/#/accounts) running.
+
+Look in the console, once the *listener* service is switching from `catching up` to `processing`, you are good to go.
+
+> If you want to run only the node, comment out everything but the `chain` entry.
+
 
 ### Building from source
 

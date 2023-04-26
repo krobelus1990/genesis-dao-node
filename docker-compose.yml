@@ -1,17 +1,74 @@
-version: "3.2"
-
 services:
-  dev:
-    container_name: genesis-dao
-    image: paritytech/ci-linux:production
-    working_dir: /var/www/genesis-dao
+  chain:
+    build: https://github.com/deep-ink-ventures/genesis-dao-node.git#main
     ports:
-      - "0.0.0.0:9944:9944"
+      - "9944:9944"
     environment:
       - CARGO_HOME=/var/www/genesis-dao/.cargo
+
+  app:
+    build: https://github.com/deep-ink-ventures/genesis-dao-service.git#main
+    command: [ "web" ]
+    ports:
+      - "8000:8000"
+    depends_on: &deps
+      - chain
+      - db
+      - cache
+    environment:
+      - APPLICATION_STAGE=development
+      - DATABASE_HOST=db
+      - REDIS_HOST=cache
+      - BLOCKCHAIN_URL=ws://chain:9944/
+
+  listener:
+    build: https://github.com/deep-ink-ventures/genesis-dao-service.git#main
+    command: [ "listener" ]
+    depends_on: *deps
+    environment:
+      - APPLICATION_STAGE=development]
+      - DATABASE_HOST=db
+      - REDIS_HOST=cache
+      - BLOCKCHAIN_URL=ws://chain:9944/
+
+  worker:
+    build: https://github.com/deep-ink-ventures/genesis-dao-service.git#main
+    command: [ "worker" ]
+    depends_on: *deps
+    environment:
+      - APPLICATION_STAGE=development
+      - DATABASE_HOST=db
+      - REDIS_HOST=cache
+      - BLOCKCHAIN_URL=ws://chain:9944/
+
+  db:
+    image: postgres:14.1-alpine
+    command: -p 5432
+    ports:
+      - 5433:5432
     volumes:
-      - .:/var/www/genesis-dao
-      - type: bind
-        source: ./.local
-        target: /root/.local
-    command: bash -c "cargo build --release --features local-node && ./target/release/genesis-dao --dev --ws-external"
+      - db:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=core
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  cache:
+    image: redis:5-alpine
+    command: --port 6379
+    ports:
+      - 6379:6379
+
+  web:
+    build: https://github.com/deep-ink-ventures/genesis-dao-frontend.git#main
+    ports:
+      - 3000:3000
+    environment:
+      - NODE_URL=ws://chain:9944
+      - SERVICE_URL=http://app:8000
+    depends_on:
+      - chain
+      - app
+
+volumes:
+  db:
