@@ -3,7 +3,9 @@
 use sp_std::prelude::*;
 
 use frame_support::{
-	sp_runtime::traits::Zero, storage::bounded_vec::BoundedVec, traits::ReservableCurrency,
+	sp_runtime::traits::{One, Saturating, Zero},
+	storage::bounded_vec::BoundedVec,
+	traits::ReservableCurrency,
 };
 pub use pallet::*;
 
@@ -15,6 +17,9 @@ mod mock;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(any(test, feature = "runtime-benchmarks"))]
+mod test_utils;
 
 mod types;
 pub use types::*;
@@ -30,9 +35,8 @@ use pallet_dao_core::{
 pub mod weights;
 use weights::WeightInfo;
 
-type ProposalIdOf<T> = BoundedVec<u8, <T as pallet_dao_core::Config>::MaxLengthId>;
+type ProposalSlotOf<T> = ProposalSlot<DaoIdOf<T>, <T as frame_system::Config>::AccountId>;
 type ProposalOf<T> = Proposal<
-	ProposalIdOf<T>,
 	DaoIdOf<T>,
 	<T as frame_system::Config>::AccountId,
 	<T as frame_system::Config>::BlockNumber,
@@ -54,12 +58,21 @@ pub mod pallet {
 		StorageMap<_, Twox64Concat, DaoIdOf<T>, GovernanceOf<T>>;
 
 	#[pallet::storage]
+	pub(super) type ProposalSlots<T: Config> =
+		StorageMap<_, Twox64Concat, T::ProposalId, ProposalSlotOf<T>>;
+
+	#[pallet::storage]
 	pub(super) type Proposals<T: Config> =
-		StorageMap<_, Twox64Concat, ProposalIdOf<T>, ProposalOf<T>>;
+		StorageMap<_, Twox64Concat, T::ProposalId, ProposalOf<T>>;
 
 	#[pallet::storage]
 	pub(super) type Votes<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, ProposalIdOf<T>, Twox64Concat, AccountIdOf<T>, bool>;
+		StorageDoubleMap<_, Twox64Concat, T::ProposalId, Twox64Concat, AccountIdOf<T>, bool>;
+
+	/// Internal incrementor of all proposals created by this module.
+	#[pallet::storage]
+	#[pallet::getter(fn get_current_proposal_id)]
+	pub type CurrentProposalId<T: Config> = StorageValue<_, T::ProposalId, ValueQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -70,6 +83,15 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type ProposalDeposit: Get<DepositBalanceOf<Self>>;
+
+		type ProposalId: Default
+			+ Member
+			+ Parameter
+			+ Copy
+			+ MaybeSerializeDeserialize
+			+ MaxEncodedLen
+			+ One
+			+ Saturating;
 
 		/// Max number of cast votes that can be counted per `finalize_proposal` call.
 		///
@@ -85,26 +107,29 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		ProposalCreated {
-			proposal_id: ProposalIdOf<T>,
+			proposal_id: T::ProposalId,
+		},
+		ProposalMetadataSet {
+			proposal_id: T::ProposalId,
 		},
 		ProposalFaulted {
-			proposal_id: ProposalIdOf<T>,
+			proposal_id: T::ProposalId,
 			reason: Vec<u8>,
 		},
 		ProposalAccepted {
-			proposal_id: ProposalIdOf<T>,
+			proposal_id: T::ProposalId,
 		},
 		ProposalRejected {
-			proposal_id: ProposalIdOf<T>,
+			proposal_id: T::ProposalId,
 		},
 		ProposalCounting {
-			proposal_id: ProposalIdOf<T>,
+			proposal_id: T::ProposalId,
 		},
 		ProposalImplemented {
-			proposal_id: ProposalIdOf<T>,
+			proposal_id: T::ProposalId,
 		},
 		VoteCast {
-			proposal_id: ProposalIdOf<T>,
+			proposal_id: T::ProposalId,
 			voter: AccountIdOf<T>,
 			in_favor: Option<bool>,
 		},
@@ -120,41 +145,26 @@ pub mod pallet {
 	pub enum Error<T> {
 		DaoTokenNotYetIssued,
 		GovernanceNotSet,
-		ProposalIdInvalidLengthTooLong,
-		ProposalAlreadyExists,
 		ProposalDoesNotExist,
 		ProposalStatusNotRunning,
 		ProposalStatusNotAccepted,
 		ProposalDurationHasNotPassed,
 		ProposalDurationHasPassed,
 		SenderIsNotDaoOwner,
+		SenderIsNotProposalCreator,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::call_index(1)]
+		#[pallet::call_index(0)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::create_proposal())]
-		pub fn create_proposal(
-			origin: OriginFor<T>,
-			dao_id: Vec<u8>,
-			proposal_id: Vec<u8>,
-			meta: Vec<u8>,
-			hash: Vec<u8>,
-		) -> DispatchResult {
+		pub fn create_proposal(origin: OriginFor<T>, dao_id: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			let dao = pallet_dao_core::Pallet::<T>::load_dao(dao_id)?;
 			let dao_id = dao.id;
 			let asset_id = dao.asset_id.ok_or(Error::<T>::DaoTokenNotYetIssued)?;
 			let governance =
 				<Governances<T>>::get(dao_id.clone()).ok_or(Error::<T>::GovernanceNotSet)?;
-
-			let proposal_id: BoundedVec<_, _> =
-				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
-			ensure!(!<Proposals<T>>::contains_key(&proposal_id), Error::<T>::ProposalAlreadyExists);
-			let meta: BoundedVec<_, _> =
-				meta.try_into().map_err(|_| DaoError::<T>::MetadataInvalidLengthTooLong)?;
-			let hash: BoundedVec<_, _> =
-				hash.try_into().map_err(|_| DaoError::<T>::HashInvalidWrongLength)?;
 
 			let deposit = <T as Config>::ProposalDeposit::get();
 
@@ -170,14 +180,48 @@ pub mod pallet {
 				CurrencyOf::<T>::unreserve(&sender, deposit);
 				Err(error)?;
 			};
+			// increase proposal counter
+			<CurrentProposalId<T>>::mutate(|id| id.saturating_inc());
+
+			// store a proposal slot
+			<ProposalSlots<T>>::insert(
+				Self::get_current_proposal_id(),
+				ProposalSlot { dao_id, creator: sender },
+			);
+			// emit an event
+			Self::deposit_event(Event::<T>::ProposalCreated {
+				proposal_id: Self::get_current_proposal_id(),
+			});
+
+			Ok(())
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(0)] //<T as pallet::Config>::WeightInfo::create_proposal())]
+		pub fn set_metadata(
+			origin: OriginFor<T>,
+			proposal_id: T::ProposalId,
+			meta: Vec<u8>,
+			hash: Vec<u8>,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin.clone())?;
+
+			let slot =
+				ProposalSlots::<T>::get(proposal_id).ok_or(Error::<T>::ProposalDoesNotExist)?;
+			ensure!(sender == slot.creator, Error::<T>::SenderIsNotProposalCreator);
+
+			let meta: BoundedVec<_, _> =
+				meta.try_into().map_err(|_| DaoError::<T>::MetadataInvalidLengthTooLong)?;
+			let hash: BoundedVec<_, _> =
+				hash.try_into().map_err(|_| DaoError::<T>::HashInvalidWrongLength)?;
 
 			let birth_block = <frame_system::Pallet<T>>::block_number();
 			// store the proposal
-			<Proposals<T>>::insert(
-				proposal_id.clone(),
+			ProposalSlots::<T>::remove(proposal_id);
+			Proposals::<T>::insert(
+				proposal_id,
 				Proposal {
-					id: proposal_id.clone(),
-					dao_id,
+					dao_id: slot.dao_id,
 					creator: sender,
 					birth_block,
 					status: ProposalStatus::Running,
@@ -187,8 +231,9 @@ pub mod pallet {
 					meta_hash: hash,
 				},
 			);
+
 			// emit an event
-			Self::deposit_event(Event::<T>::ProposalCreated { proposal_id });
+			Self::deposit_event(Event::<T>::ProposalMetadataSet { proposal_id });
 			Ok(())
 		}
 
@@ -196,16 +241,14 @@ pub mod pallet {
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::fault_proposal())]
 		pub fn fault_proposal(
 			origin: OriginFor<T>,
-			proposal_id: Vec<u8>,
+			proposal_id: T::ProposalId,
 			reason: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			let proposal_id: BoundedVec<_, _> =
-				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			// check that a proposal exists with the given id
-			let mut proposal = <Proposals<T>>::try_get(proposal_id.clone())
-				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
+			let mut proposal =
+				<Proposals<T>>::get(proposal_id).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
 			// check that sender is owner of the DAO
 			ensure!(
@@ -226,10 +269,11 @@ pub mod pallet {
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::finalize_proposal(T::HistoryHorizon::get()))]
-		pub fn finalize_proposal(origin: OriginFor<T>, proposal_id: Vec<u8>) -> DispatchResult {
+		pub fn finalize_proposal(
+			origin: OriginFor<T>,
+			proposal_id: T::ProposalId,
+		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			let proposal_id: BoundedVec<_, _> =
-				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			// check that a proposal exists with the given id
 			let mut proposal = <Proposals<T>>::try_get(proposal_id.clone())
@@ -330,19 +374,20 @@ pub mod pallet {
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::vote())]
 		pub fn vote(
 			origin: OriginFor<T>,
-			proposal_id: Vec<u8>,
+			proposal_id: T::ProposalId,
 			in_favor: Option<bool>,
 		) -> DispatchResult {
 			let voter = ensure_signed(origin)?;
-			let proposal_id: BoundedVec<_, _> =
-				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			// check that a proposal exists with the given id
 			let proposal = <Proposals<T>>::try_get(proposal_id.clone())
 				.map_err(|_| Error::<T>::ProposalDoesNotExist)?;
 
 			// check that the proposal is running
-			ensure!(proposal.status == ProposalStatus::Running, Error::<T>::ProposalStatusNotRunning);
+			ensure!(
+				proposal.status == ProposalStatus::Running,
+				Error::<T>::ProposalStatusNotRunning
+			);
 
 			let governance =
 				<Governances<T>>::get(&proposal.dao_id).ok_or(Error::<T>::GovernanceNotSet)?;
@@ -386,11 +431,11 @@ pub mod pallet {
 
 		#[pallet::call_index(7)]
 		//#[pallet::weight(<T as pallet::Config>::WeightInfo::mark_implemented())]
-		pub fn mark_implemented(origin: OriginFor<T>, proposal_id: Vec<u8>) -> DispatchResult {
+		pub fn mark_implemented(
+			origin: OriginFor<T>,
+			proposal_id: T::ProposalId,
+		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-
-			let proposal_id: BoundedVec<_, _> =
-				proposal_id.try_into().map_err(|_| Error::<T>::ProposalIdInvalidLengthTooLong)?;
 
 			<Proposals<T>>::try_mutate(proposal_id.clone(), |maybe_proposal| -> DispatchResult {
 				let proposal = maybe_proposal.as_mut().ok_or(Error::<T>::ProposalDoesNotExist)?;

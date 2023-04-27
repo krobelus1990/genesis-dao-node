@@ -7,8 +7,13 @@ use frame_support::{
 use scale_info::TypeInfo;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct Proposal<Id, DaoId, AccountId, BlockId, Balance, Metadata> {
-	pub id: Id,
+pub struct ProposalSlot<DaoId, AccountId> {
+	pub dao_id: DaoId,
+	pub creator: AccountId,
+}
+
+#[derive(Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub struct Proposal<DaoId, AccountId, BlockId, Balance, Metadata> {
 	pub dao_id: DaoId,
 	pub creator: AccountId,
 	pub birth_block: BlockId,

@@ -111,6 +111,7 @@ impl pallet_dao_core::Config for Test {
 impl pallet_dao_votes::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type ProposalDeposit = ConstU128<10>;
+	type ProposalId = u32;
 	type FinalizeVotesLimit = ConstU32<1000>;
 	type WeightInfo = ();
 }
