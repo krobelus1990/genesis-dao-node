@@ -68,27 +68,6 @@ pub fn setup_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> T::Pr
 	proposal_id
 }
 
-/// Creates a DAO for the given caller with a governance set and a proposal created and accepted
-/// - `caller`: AccountId of the dao creator
-/// - `dao_id`: id of the dao
-pub fn setup_accepted_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> T::ProposalId {
-	let prop_id = setup_proposal::<T>(caller.clone(), dao_id);
-	assert_eq!(
-		Votes::<T>::vote(RawOrigin::Signed(caller.clone()).into(), prop_id.clone(), Some(true)),
-		Ok(())
-	);
-	run_to_block::<T>(System::<T>::block_number() + 1_u32.into());
-	assert_eq!(
-		Votes::<T>::finalize_proposal(RawOrigin::Signed(caller).into(), prop_id.clone()),
-		Ok(())
-	);
-	prop_id
-}
-
-pub fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
-	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
-}
-
 pub fn run_to_block<T: Config>(n: <T as SystemConfig>::BlockNumber) {
 	use frame_support::traits::{OnFinalize, OnInitialize};
 	while System::<T>::block_number() < n {
