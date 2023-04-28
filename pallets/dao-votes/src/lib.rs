@@ -101,6 +101,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		ProposalCreated {
+			dao_id: DaoIdOf<T>,
+			creator: AccountIdOf<T>,
 			proposal_id: T::ProposalId,
 		},
 		ProposalMetadataSet {
@@ -180,10 +182,12 @@ pub mod pallet {
 			// store a proposal slot
 			<ProposalSlots<T>>::insert(
 				Self::get_current_proposal_id(),
-				ProposalSlot { dao_id, creator: sender },
+				ProposalSlot { dao_id: dao_id.clone(), creator: sender.clone() },
 			);
 			// emit an event
 			Self::deposit_event(Event::<T>::ProposalCreated {
+				dao_id: dao_id,
+				creator: sender,
 				proposal_id: Self::get_current_proposal_id(),
 			});
 
