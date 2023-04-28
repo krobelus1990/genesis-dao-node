@@ -11,6 +11,6 @@ of the dao-assets pallet and implements the full lifecycle of proposal managemen
 ### Dispatchable Functions
 - `create_proposal`: Create a proposal alongside with a hash for a structured JSON file.
 - `fault_proposal`: DAO owner can mark a proposal as faulty.
-- `finalize_proposal`: Run the counting of a finalized proposal. A high number of votes may require multiple calls.
-- `vote`: Vote in favor or against a proposal with your current tokens.
+- `finalize_proposal`: Determine whether a proposal should be accepted or rejected according to the number of votes and governance.
+- `vote`: Vote in favor or against a proposal. Your voting power is your token balance at the moment of proposal creation.
 - `set_governance_majority_vote`: Configure the default voting mechanism - majority vote.

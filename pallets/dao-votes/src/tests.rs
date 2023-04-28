@@ -126,20 +126,6 @@ fn can_cast_and_remove_a_vote() {
 	});
 }
 
-fn run_to_block(n: u64) {
-	use frame_support::traits::{OnFinalize, OnInitialize};
-	while System::block_number() < n {
-		let mut block = System::block_number();
-		Assets::on_finalize(block);
-		System::on_finalize(block);
-		System::reset_events();
-		block += 1;
-		System::set_block_number(block);
-		System::on_initialize(block);
-		Assets::on_initialize(block);
-	}
-}
-
 #[test]
 fn can_fault_a_proposal() {
 	new_test_ext().execute_with(|| {
@@ -191,7 +177,7 @@ fn can_finalize_a_proposal() {
 
 		let mut block = System::block_number();
 		block += 1;
-		run_to_block(block);
+		run_to_block::<Test>(block);
 		assert_ok!(DaoVotes::finalize_proposal(origin, prop_id));
 	})
 }
@@ -231,7 +217,7 @@ fn voting_outcome_unsuccessful_proposal() {
 		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), Some(false)));
 
 		let block = System::block_number() + 1 + duration as u64;
-		run_to_block(block);
+		run_to_block::<Test>(block);
 		assert_ok!(DaoVotes::finalize_proposal(origin, prop_id));
 		let proposal = Proposals::<Test>::get(prop_id).unwrap();
 		assert_eq!(proposal.status, ProposalStatus::Rejected);
@@ -285,7 +271,7 @@ fn voting_outcome_successful_proposal_and_mark_implemented() {
 		assert_ok!(DaoVotes::vote(origin.clone(), prop_id.clone(), Some(false)));
 
 		let block = System::block_number() + 1 + duration as u64;
-		run_to_block(block);
+		run_to_block::<Test>(block);
 		assert_ok!(DaoVotes::finalize_proposal(origin.clone(), prop_id));
 
 		let proposal = Proposals::<Test>::get(prop_id).unwrap();

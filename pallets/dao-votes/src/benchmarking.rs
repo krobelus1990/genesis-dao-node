@@ -1,24 +1,10 @@
 //! DAO Votes pallet benchmarking.
 
 use super::*;
-use crate::test_utils::*;
-use frame_benchmarking::{account, benchmarks, whitelisted_caller};
-use frame_support::traits::Get;
-use frame_system::RawOrigin;
-
-use crate::Pallet as Votes;
+use crate::{test_utils::*, Pallet as Votes};
+use frame_benchmarking::{benchmarks, whitelisted_caller};
+use frame_system::{Pallet as System, RawOrigin};
 use pallet_dao_core::{Config as DaoConfig, Currency};
-
-const SEED: u32 = 0;
-
-/// Add voters to a proposal
-/// - `proposal_id`: id of the proposal
-fn add_voters<T: Config>(proposal_id: T::ProposalId, n: u32) {
-	for i in 0..n {
-		let voter = account("voter", i, SEED);
-		assert!(Votes::<T>::vote(RawOrigin::Signed(voter).into(), proposal_id, Some(true)).is_ok());
-	}
-}
 
 /// A whitelisted caller with enough funds
 fn setup_caller<T: Config>() -> T::AccountId {
@@ -29,6 +15,27 @@ fn setup_caller<T: Config>() -> T::AccountId {
 	<T as DaoConfig>::Currency::make_free_balance_be(&caller, balance);
 	assert_eq!(<T as DaoConfig>::Currency::free_balance(&caller), balance);
 	caller
+}
+
+/// Creates a DAO for the given caller with a governance set and a proposal created and accepted
+/// - `caller`: AccountId of the dao creator
+/// - `dao_id`: id of the dao
+fn setup_accepted_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> T::ProposalId {
+	let prop_id = setup_proposal::<T>(caller.clone(), dao_id);
+	assert_eq!(
+		Votes::<T>::vote(RawOrigin::Signed(caller.clone()).into(), prop_id.clone(), Some(true)),
+		Ok(())
+	);
+	run_to_block::<T>(System::<T>::block_number() + 1_u32.into());
+	assert_eq!(
+		Votes::<T>::finalize_proposal(RawOrigin::Signed(caller).into(), prop_id.clone()),
+		Ok(())
+	);
+	prop_id
+}
+
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
+	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
 benchmarks! {
@@ -63,11 +70,9 @@ benchmarks! {
 	}
 
 	finalize_proposal {
-		let v in 0 .. T::FinalizeVotesLimit::get();
 		let caller = setup_caller::<T>();
 		let dao_id = setup_dao_with_governance::<T>(caller.clone());
 		let proposal_id = setup_proposal::<T>(caller.clone(), dao_id);
-		add_voters::<T>(proposal_id.clone(), v);
 		frame_system::Pallet::<T>::set_block_number(5_u32.into());
 	}: _(RawOrigin::Signed(caller.clone()), proposal_id.clone())
 	verify {

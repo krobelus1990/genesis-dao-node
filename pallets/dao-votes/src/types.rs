@@ -28,7 +28,6 @@ pub struct Proposal<DaoId, AccountId, BlockId, Balance, Metadata> {
 pub enum ProposalStatus {
 	#[default]
 	Running,
-	Counting,
 	Accepted,
 	Rejected,
 	Faulty,

@@ -343,7 +343,6 @@ impl pallet_dao_votes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ProposalDeposit = ConstU128<{ 10 * DOT }>;
 	type ProposalId = u64;
-	type FinalizeVotesLimit = ConstU32<1000>;
 	type WeightInfo = pallet_dao_votes::weights::SubstrateWeight<Runtime>;
 }
 
