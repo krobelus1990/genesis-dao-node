@@ -1,6 +1,6 @@
 services:
   chain:
-    build: https://github.com/deep-ink-ventures/genesis-dao-node.git#main
+    build: .
     ports:
       - "9944:9944"
     environment:
