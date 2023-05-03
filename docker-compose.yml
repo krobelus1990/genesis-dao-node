@@ -60,12 +60,13 @@ services:
       - 6379:6379
 
   web:
-    build: https://github.com/deep-ink-ventures/genesis-dao-frontend.git#main
+    build:
+      context: https://github.com/deep-ink-ventures/genesis-dao-frontend.git#main
+      args:
+        ENVIRONMENT: dockerized
+    command: [ "yarn", "dev" ]
     ports:
       - 3000:3000
-    environment:
-      - NODE_URL=ws://chain:9944
-      - SERVICE_URL=http://app:8000
     depends_on:
       - chain
       - app
