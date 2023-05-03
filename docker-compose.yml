@@ -64,7 +64,6 @@ services:
       context: https://github.com/deep-ink-ventures/genesis-dao-frontend.git#main
       args:
         ENVIRONMENT: dockerized
-    command: [ "yarn", "dev" ]
     ports:
       - 3000:3000
     depends_on:
