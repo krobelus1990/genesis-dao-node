@@ -4,7 +4,9 @@ use node_runtime::{
 	runtime_types::{
 		bounded_collections::bounded_vec::BoundedVec, pallet_dao_core::types::Dao as DaoInternal,
 	},
-	votes::events::{ProposalCreated, ProposalFaulted, SetGovernanceMajorityVote, VoteCast},
+	votes::events::{
+		ProposalCreated, ProposalFaulted, ProposalMetadataSet, SetGovernanceMajorityVote, VoteCast,
+	},
 };
 use subxt::{tx::Signer, utils::AccountId32, OnlineClient, PolkadotConfig};
 
@@ -19,6 +21,8 @@ pub mod node_runtime {}
 
 // The Config of the node to be tested
 type Config = PolkadotConfig;
+
+type ProposalId = u64;
 
 #[tokio::main]
 pub async fn create_dao(
@@ -130,15 +134,30 @@ pub async fn set_governance(
 pub async fn create_proposal(
 	signer: &impl Signer<Config>,
 	dao_id: Vec<u8>,
-	proposal_id: Vec<u8>,
-	metadata: Vec<u8>,
-	hash: Vec<u8>,
 ) -> Result<Option<ProposalCreated>, Box<dyn std::error::Error>> {
 	// client that can submit transactions
 	let api = OnlineClient::<Config>::new().await?;
 
 	// transaction to be submitted
-	let tx = node_runtime::tx().votes().create_proposal(dao_id, proposal_id, metadata, hash);
+	let tx = node_runtime::tx().votes().create_proposal(dao_id);
+
+	// submit the transaction and wait for its event
+	let progress = api.tx().sign_and_submit_then_watch_default(&tx, signer).await?;
+	Ok(progress.wait_for_finalized_success().await?.find_first()?)
+}
+
+#[tokio::main]
+pub async fn set_proposal_metadata(
+	signer: &impl Signer<Config>,
+	proposal_id: u64,
+	metadata: Vec<u8>,
+	hash: Vec<u8>,
+) -> Result<Option<ProposalMetadataSet>, Box<dyn std::error::Error>> {
+	// client that can submit transactions
+	let api = OnlineClient::<Config>::new().await?;
+
+	// transaction to be submitted
+	let tx = node_runtime::tx().votes().set_metadata(proposal_id, metadata, hash);
 
 	// submit the transaction and wait for its event
 	let progress = api.tx().sign_and_submit_then_watch_default(&tx, signer).await?;
@@ -148,7 +167,7 @@ pub async fn create_proposal(
 #[tokio::main]
 pub async fn fault_proposal(
 	signer: &impl Signer<Config>,
-	proposal_id: Vec<u8>,
+	proposal_id: ProposalId,
 	reason: Vec<u8>,
 ) -> Result<Option<ProposalFaulted>, Box<dyn std::error::Error>> {
 	// client that can submit transactions
@@ -165,7 +184,7 @@ pub async fn fault_proposal(
 #[tokio::main]
 pub async fn vote(
 	signer: &impl Signer<Config>,
-	proposal_id: Vec<u8>,
+	proposal_id: ProposalId,
 	in_favor: Option<bool>,
 ) -> Result<Option<VoteCast>, Box<dyn std::error::Error>> {
 	// client that can submit transactions
