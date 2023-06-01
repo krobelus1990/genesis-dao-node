@@ -80,50 +80,63 @@ fn dao_lifecycle() {
 		},
 	}
 
-	let faulty_prop_id = b"FAULTY".to_vec();
-	let metadata = b"http://my.cool.proposal".to_vec();
-	// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
-	let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
-	match create_proposal(
-		&user,
-		dao_id.clone(),
-		faulty_prop_id.clone(),
-		metadata.clone(),
-		hash.clone(),
-	) {
+	// create proposal to be faulted
+	let faulty_proposal_id;
+	match create_proposal(&user, dao_id.clone()) {
 		Err(error) => panic!("Error creating proposal: {error}"),
 		Ok(None) => panic!("No ProposalCreated event"),
 		Ok(Some(event)) => {
-			assert_eq!(event.proposal_id.0, faulty_prop_id, "Created proposal with wrong id");
+			faulty_proposal_id = event.proposal_id;
+		},
+	}
+
+	// set its metadata
+	let metadata = b"http://my.cool.proposal".to_vec();
+	// https://en.wikipedia.org/wiki/SHA-3#Examples_of_SHA-3_variants
+	let hash = b"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a".to_vec();
+	match set_proposal_metadata(&user, faulty_proposal_id, metadata.clone(), hash.clone()) {
+		Err(error) => panic!("Error setting proposal metadata: {error}"),
+		Ok(None) => panic!("No ProposalMetadataSet event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.proposal_id, faulty_proposal_id, "Set metadata for wrong proposal");
 		},
 	}
 
 	let reason = b"Bad".to_vec();
-	match fault_proposal(&user, faulty_prop_id.clone(), reason.clone()) {
+	match fault_proposal(&user, faulty_proposal_id, reason.clone()) {
 		Err(error) => panic!("Error faulting proposal: {error}"),
 		Ok(None) => panic!("No ProposalFaulted event"),
 		Ok(Some(event)) => {
-			assert_eq!(event.proposal_id.0, faulty_prop_id, "Faulted proposal with wrong id");
+			assert_eq!(event.proposal_id, faulty_proposal_id, "Faulted proposal with wrong id");
 			assert_eq!(event.reason, reason, "Faulted proposal for wrong reason");
 		},
 	}
 
 	// create fresh proposal
-	let proposal_id = b"PROPOSAL".to_vec();
-	match create_proposal(&user, dao_id.clone(), proposal_id.clone(), metadata, hash) {
+	let proposal_id;
+	match create_proposal(&user, dao_id.clone()) {
 		Err(error) => panic!("Error creating proposal: {error}"),
 		Ok(None) => panic!("No ProposalCreated event"),
 		Ok(Some(event)) => {
-			assert_eq!(event.proposal_id.0, proposal_id, "Created proposal with wrong id");
+			proposal_id = event.proposal_id;
+		},
+	}
+
+	// set its metadata
+	match set_proposal_metadata(&user, proposal_id, metadata, hash) {
+		Err(error) => panic!("Error setting proposal metadata: {error}"),
+		Ok(None) => panic!("No ProposalMetadataSet event"),
+		Ok(Some(event)) => {
+			assert_eq!(event.proposal_id, proposal_id, "Set metadata for wrong proposal");
 		},
 	}
 
 	let in_favor = Some(true);
-	match vote(&user, proposal_id.clone(), in_favor) {
+	match vote(&user, proposal_id, in_favor) {
 		Err(error) => panic!("Error voting: {error}"),
 		Ok(None) => panic!("No VoteCast event"),
 		Ok(Some(event)) => {
-			assert_eq!(event.proposal_id.0, proposal_id, "Created vote with wrong proposal id");
+			assert_eq!(event.proposal_id, proposal_id, "Created vote with wrong proposal id");
 			assert_eq!(event.voter, *user.account_id(), "Created vote for wrong voter");
 		},
 	}
