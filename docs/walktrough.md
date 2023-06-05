@@ -162,6 +162,14 @@ This will mark this proposal as reported to the council.
   <img width="838" alt="Screenshot 2023-06-05 at 10 23 40" src="https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/628fd105-4440-461e-8bd2-5bffc5f2c939">
 </p>
 
+## Finalize
+Once the proposal duration is over everyone can hit the finalize button to move change the proposals status (it is automatically prohibited to vote once the duration is over, but change states on the blockchain require an action on behalf of someone).
+
+
+<p align="center">
+  <img src="https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/b8590ffd-3289-4636-b7ae-a0cd319c30cc">
+</p>
+
 ## Acting as a council
 
 > Upcoming version of Genesis DAO will create a non-signed transaction for the Council, but currently this functionality lies within polkadot.js.org
