@@ -140,7 +140,7 @@ Your DAO is now up for voting.
   <img width="841" alt="Screenshot 2023-06-05 at 10 21 15" src="https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/b11f2cb0-4f73-4417-8f45-515e22b8dbde">
 </p>
 
-## Interacting with a proposal as a community member
+## Voting for a proposal as a community member
 
 As a community member you can review the current count or cast your vote.
 
@@ -148,7 +148,9 @@ As a community member you can review the current count or cast your vote.
   <img width="839" alt="Screenshot 2023-06-05 at 10 21 33" src="https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/a6038b00-e2e6-4b67-95da-58e395d425f0">
 </p>
 
-If you think a proposal is spam you can report it as faulty to the council. T
+## Marking a proposal as faulty
+
+If you think a proposal is spam you can report it as faulty to the council.
 
 <p align="center">
   <img width="901" alt="Screenshot 2023-06-05 at 10 23 08" src="https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/a66f561e-6e4f-49f6-a652-849ce828673b">
