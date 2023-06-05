@@ -162,9 +162,37 @@ This will mark this proposal as reported to the council.
   <img width="838" alt="Screenshot 2023-06-05 at 10 23 40" src="https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/628fd105-4440-461e-8bd2-5bffc5f2c939">
 </p>
 
+## Acting as a council
+
 > Upcoming version of Genesis DAO will create a non-signed transaction for the Council, but currently this functionality lies within polkadot.js.org
 
+Go ahead and click create multisig in [polkadot.js.og](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fnode.genesis-dao.org#/)
 
+![Screen Shot 2023-06-05 at 10 08 08 AM](https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/441b3ea3-d2dd-40b4-8dcd-e88b4c2911fc)
 
+Select the signers that you have used in the DAO creation. In order for this to match the Multisig created within your DAO the order and the threshold must be identical because they are used to derive the address.
+
+![Screen Shot 2023-06-05 at 10 10 11 AM](https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/6caeaa06-02d1-46dc-a9b2-dee566b9dd95)
+
+The multisig is now mirrored in polkadot.js.org:
+
+![Screen Shot 2023-06-05 at 10 12 20 AM](https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/b7e8da19-d1e8-4196-a48e-ff915a9f197d)
+
+You can now go ahead and interact with the DAO - most prominently fault or mark a proposal as implemented.
+
+> After a proposal is over it's `finalized`, meaning people can no longer vote and it changes it status. `implemented` means that the requested action has been taken - e.g. someone went to the website and made the logo bigger. While everyone can mark as `finalized` ones a proposal is over, `implemented` is a council action.
+
+![Screen Shot 2023-06-05 at 10 10 56 AM](https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/1fb9fca8-73be-4ebf-bacd-61a1796722af)
+
+Be sure to copy the encoded call data, as it's required for the multisig.
+
+You can now authorize the transcation in your multisig wallet.
+![Screen Shot 2023-06-05 at 10 11 01 AM](https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/ee170fce-ff19-485f-8ce9-5f0dfd2b87b3)
+
+And approve it:
+
+![Screen Shot 2023-06-05 at 10 12 32 AM](https://github.com/deep-ink-ventures/genesis-dao-node/assets/120174523/1fbebb3b-977d-4b08-bf8a-2bd5694b65c0)
+
+We have created a video on all of this [here](https://drive.google.com/file/d/1nD1wxHhs0jP_zL49tCeidj46ZLFTgm4X/view).
 
 
