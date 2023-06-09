@@ -1,0 +1,41 @@
+--- ../../../substrate-node-template/node/src/service.rs	2023-06-09 07:35:11.162801866 +0200
++++ service.rs	2023-06-09 07:35:40.018801440 +0200
+@@ -1,6 +1,6 @@
+ //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
+ 
+-use node_template_runtime::{self, opaque::Block, RuntimeApi};
++use local_runtime::{self, opaque::Block, RuntimeApi};
+ use sc_client_api::BlockBackend;
+ use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
+ use sc_consensus_grandpa::SharedVoterState;
+@@ -22,11 +22,11 @@
+ 	type ExtendHostFunctions = ();
+ 
+ 	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+-		node_template_runtime::api::dispatch(method, data)
++		local_runtime::api::dispatch(method, data)
+ 	}
+ 
+ 	fn native_version() -> sc_executor::NativeVersion {
+-		node_template_runtime::native_version()
++		local_runtime::native_version()
+ 	}
+ }
+ 
+@@ -35,6 +35,7 @@
+ type FullBackend = sc_service::TFullBackend<Block>;
+ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
+ 
++#[allow(clippy::type_complexity)]
+ pub fn new_partial(
+ 	config: &Configuration,
+ ) -> Result<
+@@ -95,6 +96,8 @@
+ 
+ 	let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
+ 		client.clone(),
++		// false positive
++		#[allow(clippy::redundant_clone)]
+ 		&(client.clone() as Arc<_>),
+ 		select_chain.clone(),
+ 		telemetry.as_ref().map(|x| x.handle()),

@@ -1,0 +1,12 @@
+--- ../../../substrate-node-template/node/src/cli.rs	2023-03-29 09:44:37.870879520 +0200
++++ cli.rs	2023-06-09 07:30:55.484805638 +0200
+@@ -9,7 +9,9 @@
+ 	pub run: RunCmd,
+ }
+ 
++
+ #[derive(Debug, clap::Subcommand)]
++#[allow(clippy::large_enum_variant)]
+ pub enum Subcommand {
+ 	/// Key management cli utilities
+ 	#[command(subcommand)]

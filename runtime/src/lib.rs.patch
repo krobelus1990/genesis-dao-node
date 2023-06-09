@@ -1,5 +1,5 @@
---- ../../../../substrate-node-template/runtime/src/lib.rs	2023-03-29 09:44:37.872879520 +0200
-+++ lib.rs	2023-04-12 10:50:22.009137403 +0200
+--- ../../../substrate-node-template/runtime/src/lib.rs	2023-06-09 09:27:31.852702410 +0200
++++ lib.rs	2023-06-09 09:54:06.248678886 +0200
 @@ -27,7 +27,8 @@
  pub use frame_support::{
  	construct_runtime, parameter_types,
@@ -23,21 +23,23 @@
  
  /// An index to a block.
  pub type BlockNumber = u32;
-@@ -61,6 +64,13 @@
+@@ -61,6 +64,15 @@
  /// Balance of an account.
  pub type Balance = u128;
  
-+pub const CENTS: Balance = 10_000_000_000_000_000; // assume this is worth about a cent.
-+pub const DOLLARS: Balance = 100 * CENTS;
++pub const PLANCK: Balance = 1;
++pub const MICRODOT: Balance = PLANCK * 10_000;
++pub const MILLIDOT: Balance = PLANCK * 10_000_000;
++pub const DOT: Balance = PLANCK * 10_000_000_000;
 +
 +pub const fn deposit(items: u32, bytes: u32) -> Balance {
-+	items as Balance * 15 * CENTS + bytes as Balance * 6 * CENTS
++	items as Balance * 150 * MILLIDOT + bytes as Balance * 60 * MILLIDOT
 +}
 +
  /// Index of a transaction in the chain.
  pub type Index = u32;
  
-@@ -95,8 +105,8 @@
+@@ -95,8 +107,8 @@
  // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
  #[sp_version::runtime_version]
  pub const VERSION: RuntimeVersion = RuntimeVersion {
@@ -48,8 +50,8 @@
  	authoring_version: 1,
  	// The version of the runtime specification. A full node will not attempt to use its native
  	//   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
-@@ -245,6 +255,23 @@
- 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+@@ -249,6 +261,23 @@
+ 	type MaxHolds = ();
  }
  
 +// these values come from
@@ -72,14 +74,15 @@
  parameter_types! {
  	pub FeeMultiplier: Multiplier = Multiplier::one();
  }
-@@ -263,9 +290,62 @@
+@@ -267,10 +296,58 @@
  	type RuntimeCall = RuntimeCall;
  }
  
 -/// Configure the pallet-template in pallets/template.
 -impl pallet_template::Config for Runtime {
 +impl pallet_utility::Config for Runtime {
-+	type RuntimeEvent = RuntimeEvent;
+ 	type RuntimeEvent = RuntimeEvent;
+-	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
 +	type RuntimeCall = RuntimeCall;
 +	type PalletsOrigin = OriginCaller;
 +	type WeightInfo = ();
@@ -89,21 +92,17 @@
 +parameter_types! {
 +	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
 +	pub const AssetsStringLimit: u32 = 50;
-+	pub const MetadataDepositBase: Balance = deposit(1, 68);
-+	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
 +}
 +
 +// DAO assets
 +impl pallet_dao_assets::Config for Runtime {
- 	type RuntimeEvent = RuntimeEvent;
++	type RuntimeEvent = RuntimeEvent;
 +	type Balance = Balance;
 +	type AssetId = u32;
 +	type AssetIdParameter = u32;
 +	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
 +	type Currency = Balances;
 +	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-+	type MetadataDepositBase = MetadataDepositBase;
-+	type MetadataDepositPerByte = MetadataDepositPerByte;
 +	type ApprovalDeposit = ApprovalDeposit;
 +	type RemoveItemsLimit = ConstU32<1000>;
 +	type StringLimit = AssetsStringLimit;
@@ -122,7 +121,7 @@
 +	type MaxLengthName = ConstU32<32>;
 +	type MaxLengthMetadata = ConstU32<256>;
 +	type Currency = Balances;
-+	type DaoDeposit = ConstU128<{ 10 * DOLLARS }>;
++	type DaoDeposit = ConstU128<{ 10 * DOT }>;
 +	type TokenUnits = ConstU8<10>;
 +	type AssetId = u32;
 +	type WeightInfo = pallet_dao_core::weights::SubstrateWeight<Runtime>;
@@ -131,13 +130,13 @@
 +// DAO votes
 +impl pallet_dao_votes::Config for Runtime {
 +	type RuntimeEvent = RuntimeEvent;
-+	type ProposalDeposit = ConstU128<{ 10 * DOLLARS }>;
-+	type FinalizeVotesLimit = ConstU32<1000>;
++	type ProposalDeposit = ConstU128<{ 10 * DOT }>;
++	type ProposalId = u64;
 +	type WeightInfo = pallet_dao_votes::weights::SubstrateWeight<Runtime>;
  }
  
  // Create the runtime by composing the FRAME pallets that were previously configured.
-@@ -283,8 +363,12 @@
+@@ -288,8 +365,12 @@
  		Balances: pallet_balances,
  		TransactionPayment: pallet_transaction_payment,
  		Sudo: pallet_sudo,
@@ -152,7 +151,7 @@
  	}
  );
  
-@@ -331,7 +415,9 @@
+@@ -336,7 +417,9 @@
  		[frame_system, SystemBench::<Runtime>]
  		[pallet_balances, Balances]
  		[pallet_timestamp, Timestamp]

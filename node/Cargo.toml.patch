@@ -1,6 +1,6 @@
---- ../../substrate-node-template/node/Cargo.toml	2023-03-29 09:44:37.869879520 +0200
-+++ Cargo.toml	2023-03-29 10:53:39.744766682 +0200
-@@ -1,20 +1,21 @@
+--- ../../substrate-node-template/node/Cargo.toml	2023-06-08 15:35:06.912030334 +0200
++++ Cargo.toml	2023-06-09 06:54:17.725838065 +0200
+@@ -1,24 +1,26 @@
  [package]
 -name = "node-template"
 +name = "genesis-dao"
@@ -28,13 +28,23 @@
  
  [dependencies]
  clap = { version = "4.0.9", features = ["derive"] }
-@@ -61,4 +62,4 @@
+ futures = { version = "0.3.21", features = ["thread-pool"]}
++serde_json = "1.0.96"
+ 
+ sc-cli = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ sp-core = { version = "7.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+@@ -59,7 +61,7 @@
+ frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ 
  # Local Dependencies
 -node-template-runtime = { version = "4.0.0-dev", path = "../runtime" }
-+local-runtime = { version = "4.0.0-dev", path = "../runtime/local", optional = true }
++local-runtime = { version = "4.0.0-dev", path = "../runtime", optional = true }
  
  # CLI-specific dependencies
-@@ -70,11 +71,13 @@
+ try-runtime-cli = { version = "0.10.0-dev", optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+@@ -68,13 +70,15 @@
+ substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+ 
  [features]
 -default = []
 +default = ["local-node"]

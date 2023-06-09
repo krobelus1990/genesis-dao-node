@@ -1,0 +1,55 @@
+--- ../../../substrate-node-template/node/src/chain_spec.rs	2023-03-29 09:44:37.869879520 +0200
++++ chain_spec.rs	2023-06-09 07:26:53.426809210 +0200
+@@ -1,6 +1,6 @@
+-use node_template_runtime::{
++use local_runtime::{
+ 	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
+-	SystemConfig, WASM_BINARY,
++	SystemConfig, DOT, WASM_BINARY,
+ };
+ use sc_service::ChainType;
+ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+@@ -36,6 +36,16 @@
+ 	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+ }
+ 
++/// Returns the properties for the [`PolkadotChainSpec`].
++pub fn polkadot_chain_spec_properties() -> serde_json::map::Map<String, serde_json::Value> {
++	serde_json::json!({
++		"tokenDecimals": 10,
++	})
++	.as_object()
++	.expect("Map given; qed")
++	.clone()
++}
++
+ pub fn development_config() -> Result<ChainSpec, String> {
+ 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+ 
+@@ -70,7 +80,7 @@
+ 		None,
+ 		None,
+ 		// Properties
+-		None,
++		Some(polkadot_chain_spec_properties()),
+ 		// Extensions
+ 		None,
+ 	))
+@@ -138,8 +148,8 @@
+ 			code: wasm_binary.to_vec(),
+ 		},
+ 		balances: BalancesConfig {
+-			// Configure endowed accounts with initial balance of 1 << 60.
+-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
++			// Configure endowed accounts with initial balance of $1000.
++			balances: endowed_accounts.iter().cloned().map(|k| (k, 1_000_000 * DOT)).collect(),
+ 		},
+ 		aura: AuraConfig {
+ 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
+@@ -152,5 +162,6 @@
+ 			key: Some(root_key),
+ 		},
+ 		transaction_payment: Default::default(),
++		assets: Default::default(),
+ 	}
+ }
