@@ -199,7 +199,7 @@ impl<T: Config> Pallet<T> {
 		}
 		let account = match Account::<T>::get(id, who) {
 			Some(a) => a,
-			None => return NoFunds,
+			None => return Underflow,
 		};
 		if let Some(rest) = account.balance.checked_sub(&amount) {
 			if rest < details.min_balance {
@@ -212,7 +212,7 @@ impl<T: Config> Pallet<T> {
 				Success
 			}
 		} else {
-			NoFunds
+			Underflow
 		}
 	}
 
@@ -262,7 +262,7 @@ impl<T: Config> Pallet<T> {
 		ensure!(f.best_effort || actual >= amount, Error::<T>::BalanceLow);
 
 		let conseq = Self::can_decrease(id, target, actual, f.keep_alive);
-		let actual = match conseq.into_result() {
+		let actual = match conseq.into_result(f.keep_alive) {
 			Ok(dust) => actual.saturating_add(dust), //< guaranteed by reducible_balance
 			Err(e) => {
 				debug_assert!(false, "passed from reducible_balance; qed");
@@ -308,7 +308,7 @@ impl<T: Config> Pallet<T> {
 	/// This alters the registered supply of the asset and emits an event.
 	///
 	/// Will return an error or will increase the amount by exactly `amount`.
-	pub(super) fn do_mint(
+	pub fn do_mint(
 		id: T::AssetId,
 		beneficiary: &T::AccountId,
 		amount: T::Balance,
@@ -798,7 +798,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Do set metadata
-	pub(super) fn do_set_metadata(
+	pub fn do_set_metadata(
 		id: T::AssetId,
 		from: &T::AccountId,
 		name: Vec<u8>,

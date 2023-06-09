@@ -19,7 +19,7 @@ mod tests;
 pub mod weights;
 
 mod functions;
-mod impl_fungibles;
+//mod impl_fungibles;
 mod types;
 
 pub use types::*;

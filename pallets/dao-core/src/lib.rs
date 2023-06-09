@@ -256,14 +256,14 @@ pub mod pallet {
 			)?;
 
 			// and distribute it to the owner
-			<pallet_dao_assets::pallet::Pallet<T> as Mutate<T::AccountId>>::mint_into(
+			<pallet_dao_assets::pallet::Pallet<T>>::do_mint(
 				<CurrentAssetId<T>>::get().into(),
 				&dao.owner,
 				supply,
 			)?;
 
 			// set the token metadata to the dao metadata
-			<pallet_dao_assets::pallet::Pallet<T> as MetadataMutate<T::AccountId>>::set(
+			<pallet_dao_assets::pallet::Pallet<T>>::do_set_metadata(
 				<CurrentAssetId<T>>::get().into(),
 				&dao.owner,
 				dao.name.into(),
