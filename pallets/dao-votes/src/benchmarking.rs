@@ -21,17 +21,17 @@ fn setup_caller<T: Config>() -> T::AccountId {
 /// - `caller`: AccountId of the dao creator
 /// - `dao_id`: id of the dao
 fn setup_accepted_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> T::ProposalId {
-	let prop_id = setup_proposal::<T>(caller.clone(), dao_id);
+	let proposal_id = setup_proposal::<T>(caller.clone(), dao_id);
 	assert_eq!(
-		Votes::<T>::vote(RawOrigin::Signed(caller.clone()).into(), prop_id.clone(), Some(true)),
+		Votes::<T>::vote(RawOrigin::Signed(caller.clone()).into(), proposal_id, Some(true)),
 		Ok(())
 	);
 	run_to_block::<T>(System::<T>::block_number() + 1_u32.into());
 	assert_eq!(
-		Votes::<T>::finalize_proposal(RawOrigin::Signed(caller).into(), prop_id.clone()),
+		Votes::<T>::finalize_proposal(RawOrigin::Signed(caller).into(), proposal_id),
 		Ok(())
 	);
-	prop_id
+	proposal_id
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
@@ -40,11 +40,14 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 
 benchmarks! {
 	create_proposal {
-		let caller = setup_caller::<T>();
-		let dao_id = setup_dao_with_governance::<T>(caller.clone());
-	}: _(RawOrigin::Signed(caller.clone()), dao_id)
+		let creator = setup_caller::<T>();
+		let dao_id = setup_dao_with_governance::<T>(creator.clone());
+	}: _(RawOrigin::Signed(creator.clone()), dao_id.clone())
 	verify {
-		assert_last_event::<T>(Event::ProposalCreated { proposal_id: Votes::<T>::get_current_proposal_id() }.into());
+		assert_last_event::<T>(Event::ProposalCreated {
+			dao_id: dao_id.try_into().unwrap(),
+			creator,
+			proposal_id: Votes::<T>::get_current_proposal_id() }.into());
 	}
 
 	set_metadata {
@@ -64,7 +67,7 @@ benchmarks! {
 		let dao_id = setup_dao_with_governance::<T>(caller.clone());
 		let proposal_id = setup_proposal::<T>(caller.clone(), dao_id);
 		let reason = b"Bad".to_vec();
-	}: _(RawOrigin::Signed(caller.clone()), proposal_id.clone(), reason.clone())
+	}: _(RawOrigin::Signed(caller), proposal_id, reason.clone())
 	verify {
 		assert_last_event::<T>(Event::ProposalFaulted { proposal_id, reason }.into());
 	}
@@ -74,7 +77,7 @@ benchmarks! {
 		let dao_id = setup_dao_with_governance::<T>(caller.clone());
 		let proposal_id = setup_proposal::<T>(caller.clone(), dao_id);
 		frame_system::Pallet::<T>::set_block_number(5_u32.into());
-	}: _(RawOrigin::Signed(caller.clone()), proposal_id.clone())
+	}: _(RawOrigin::Signed(caller.clone()), proposal_id)
 	verify {
 		assert_last_event::<T>(Event::ProposalRejected { proposal_id }.into());
 	}
@@ -85,7 +88,7 @@ benchmarks! {
 		let proposal_id = setup_proposal::<T>(caller.clone(), dao_id);
 		let voter = caller;
 		let in_favor = Some(true);
-	}: _(RawOrigin::Signed(voter.clone()), proposal_id.clone(), in_favor)
+	}: _(RawOrigin::Signed(voter.clone()), proposal_id, in_favor)
 	verify {
 		assert_last_event::<T>(Event::VoteCast { proposal_id, voter, in_favor }.into());
 	}
@@ -106,7 +109,7 @@ benchmarks! {
 		let caller = setup_caller::<T>();
 		let dao_id = setup_dao_with_governance::<T>(caller.clone());
 		let proposal_id = setup_accepted_proposal::<T>(caller.clone(), dao_id);
-	}: _(RawOrigin::Signed(caller.clone()), proposal_id.clone())
+	}: _(RawOrigin::Signed(caller.clone()), proposal_id)
 	verify {
 		assert_last_event::<T>(Event::ProposalImplemented { proposal_id }.into());
 	}

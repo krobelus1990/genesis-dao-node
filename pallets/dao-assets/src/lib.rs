@@ -19,7 +19,7 @@ mod tests;
 pub mod weights;
 
 mod functions;
-//mod impl_fungibles;
+mod impl_fungibles;
 mod types;
 
 pub use types::*;
@@ -34,9 +34,8 @@ use frame_support::{
 		},
 		ArithmeticError, TokenError,
 	},
-	storage::KeyPrefixIterator,
 	traits::{
-		tokens::{fungibles, DepositConsequence, WithdrawConsequence},
+		tokens::{DepositConsequence, WithdrawConsequence},
 		Currency, EnsureOriginWithArg, ReservableCurrency,
 	},
 	BoundedBTreeMap,

@@ -64,7 +64,7 @@ pub fn setup_proposal_with_id<T: Config>(caller: T::AccountId, proposal_id: T::P
 /// - `dao_id`: id of the dao
 pub fn setup_proposal<T: Config>(caller: T::AccountId, dao_id: Vec<u8>) -> T::ProposalId {
 	let proposal_id = create_proposal_id::<T>(caller.clone(), dao_id);
-	setup_proposal_with_id::<T>(caller.clone(), proposal_id);
+	setup_proposal_with_id::<T>(caller, proposal_id);
 	proposal_id
 }
 

@@ -1,5 +1,5 @@
---- ../../../substrate-node-template/node/src/service.rs	2023-06-09 07:35:11.162801866 +0200
-+++ service.rs	2023-06-09 07:35:40.018801440 +0200
+--- ../../../substrate-node-template/node/src/service.rs	2023-06-14 18:14:06.104862293 +0200
++++ service.rs	2023-06-14 17:33:01.994898650 +0200
 @@ -1,6 +1,6 @@
  //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
  
@@ -30,12 +30,21 @@
  pub fn new_partial(
  	config: &Configuration,
  ) -> Result<
-@@ -95,6 +96,8 @@
+@@ -68,7 +69,7 @@
+ 		})
+ 		.transpose()?;
+ 
+-	let executor = sc_service::new_native_or_wasm_executor(&config);
++	let executor = sc_service::new_native_or_wasm_executor(config);
+ 
+ 	let (client, backend, keystore_container, task_manager) =
+ 		sc_service::new_full_parts::<Block, RuntimeApi, _>(
+@@ -95,7 +96,7 @@
  
  	let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
  		client.clone(),
-+		// false positive
-+		#[allow(clippy::redundant_clone)]
- 		&(client.clone() as Arc<_>),
+-		&(client.clone() as Arc<_>),
++		&client,
  		select_chain.clone(),
  		telemetry.as_ref().map(|x| x.handle()),
+ 	)?;

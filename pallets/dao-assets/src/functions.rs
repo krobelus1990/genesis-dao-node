@@ -134,7 +134,7 @@ impl<T: Config> Pallet<T> {
 		d: &mut AssetDetailsOf<T>,
 	) -> Result<AssetAccountOf<T>, DispatchError> {
 		d.accounts = d.accounts.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-		frame_system::Pallet::<T>::inc_sufficients(who);
+		frame_system::Pallet::<T>::inc_providers(who);
 		Ok(AssetAccountOf::<T> { balance: Zero::zero(), reserved: Zero::zero() })
 	}
 
@@ -143,7 +143,7 @@ impl<T: Config> Pallet<T> {
 		who: &T::AccountId,
 		details: &mut AssetDetailsOf<T>,
 	) {
-		frame_system::Pallet::<T>::dec_sufficients(who);
+		let _ = frame_system::Pallet::<T>::dec_providers(who);
 		details.accounts.saturating_dec();
 		AccountHistory::<T>::remove(id, who);
 	}
@@ -161,22 +161,22 @@ impl<T: Config> Pallet<T> {
 		amount: T::Balance,
 		increase_supply: bool,
 	) -> DepositConsequence {
+		use DepositConsequence::*;
 		let details = match Asset::<T>::get(id) {
 			Some(details) => details,
-			None => return DepositConsequence::UnknownAsset,
+			None => return UnknownAsset,
 		};
+		// check for supply overflow
 		if increase_supply && details.supply.checked_add(&amount).is_none() {
-			return DepositConsequence::Overflow
-		}
-		if let Some(balance) = Self::maybe_balance(id, who) {
-			if balance.checked_add(&amount).is_none() {
-				return DepositConsequence::Overflow
-			}
-		} else if amount < details.min_balance {
-			return DepositConsequence::BelowMinimum
+			return Overflow
 		}
 
-		DepositConsequence::Success
+		match Self::maybe_balance(id, who) {
+			// check for balance overflow
+			Some(balance) if balance.checked_add(&amount).is_none() => Overflow,
+			None if amount < details.min_balance => BelowMinimum,
+			_ => Success,
+		}
 	}
 
 	/// Return the consequence of a withdraw.
@@ -227,16 +227,11 @@ impl<T: Config> Pallet<T> {
 		ensure!(details.status == AssetStatus::Live, Error::<T>::AssetNotLive);
 
 		let account = Account::<T>::get(id, who).ok_or(Error::<T>::NoAccount)?;
-		let amount = {
-			if keep_alive {
-				// We want to keep the account around.
-				account.balance.saturating_sub(details.min_balance)
-			} else {
-				// Don't care if the account dies
-				account.balance
-			}
-		};
-		Ok(amount.min(details.supply))
+		Ok(if keep_alive {
+			account.balance.saturating_sub(details.min_balance)
+		} else {
+			account.balance
+		})
 	}
 
 	/// Make preparatory checks for debiting some funds from an account. Flags indicate requirements
@@ -361,8 +356,7 @@ impl<T: Config> Pallet<T> {
 			Self::update_account_history(id, beneficiary, account.balance + account.reserved);
 			Account::<T>::insert(id, beneficiary, account);
 			Ok(())
-		})?;
-		Ok(())
+		})
 	}
 
 	/// Reduces asset `id` balance of `target` by `amount`. Flags `f` can be given to alter whether
@@ -372,6 +366,7 @@ impl<T: Config> Pallet<T> {
 	///
 	/// Will return an error and do nothing or will decrease the amount and return the amount
 	/// reduced by.
+	#[cfg(test)]
 	pub(super) fn do_burn(
 		id: T::AssetId,
 		target: &T::AccountId,
