@@ -6,6 +6,9 @@ This is the central node of the Genesis DAO Node.
 
 ## Getting Started
 
+### Sneak peak
+We provided a full [walkthrough](https://github.com/deep-ink-ventures/genesis-dao-node/blob/main/docs/walktrough.md) our dApp to give you an overview.
+
 ### Docker setup
 The fastest way to get the system up and running is with docker compose:
 
