@@ -34,9 +34,8 @@ use frame_support::{
 		},
 		ArithmeticError, TokenError,
 	},
-	storage::KeyPrefixIterator,
 	traits::{
-		tokens::{fungibles, DepositConsequence, WithdrawConsequence},
+		tokens::{DepositConsequence, WithdrawConsequence},
 		Currency, EnsureOriginWithArg, ReservableCurrency,
 	},
 	BoundedBTreeMap,

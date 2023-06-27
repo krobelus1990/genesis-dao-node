@@ -186,7 +186,7 @@ pub mod pallet {
 			);
 			// emit an event
 			Self::deposit_event(Event::<T>::ProposalCreated {
-				dao_id: dao_id,
+				dao_id,
 				creator: sender,
 				proposal_id: Self::get_current_proposal_id(),
 			});
@@ -255,7 +255,7 @@ pub mod pallet {
 			);
 
 			proposal.status = ProposalStatus::Faulty;
-			<Proposals<T>>::insert(proposal_id.clone(), proposal.clone());
+			<Proposals<T>>::insert(proposal_id, proposal.clone());
 
 			// unreserve currency
 			CurrencyOf::<T>::unreserve(&proposal.creator, <T as Config>::ProposalDeposit::get());
@@ -275,7 +275,7 @@ pub mod pallet {
 
 			// check that a proposal exists with the given id
 			let mut proposal =
-				<Proposals<T>>::get(proposal_id.clone()).ok_or(Error::<T>::ProposalDoesNotExist)?;
+				<Proposals<T>>::get(proposal_id).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
 			// check that the proposal is currently running
 			ensure!(
@@ -322,7 +322,7 @@ pub mod pallet {
 			CurrencyOf::<T>::unreserve(&sender, <T as Config>::ProposalDeposit::get());
 
 			// record updated proposal status
-			<Proposals<T>>::insert(proposal_id.clone(), proposal.clone());
+			<Proposals<T>>::insert(proposal_id, proposal.clone());
 
 			// emit event
 			Self::deposit_event(match proposal.status {
@@ -345,7 +345,7 @@ pub mod pallet {
 
 			// check that a proposal exists with the given id
 			let mut proposal =
-				<Proposals<T>>::get(proposal_id.clone()).ok_or(Error::<T>::ProposalDoesNotExist)?;
+				<Proposals<T>>::get(proposal_id).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
 			// check that the proposal is running
 			ensure!(
@@ -363,9 +363,9 @@ pub mod pallet {
 				Error::<T>::ProposalDurationHasPassed
 			);
 
-			let vote = <Votes<T>>::get(&proposal_id, &voter);
+			let vote = <Votes<T>>::get(proposal_id, &voter);
 			if vote != in_favor {
-				<Votes<T>>::set(&proposal_id, &voter, in_favor);
+				<Votes<T>>::set(proposal_id, &voter, in_favor);
 				let asset_id = Core::<T>::get_dao(&proposal.dao_id)
 					.expect("DAO exists")
 					.asset_id
@@ -397,7 +397,7 @@ pub mod pallet {
 					None => {},
 				}
 				// record updated proposal counts
-				<Proposals<T>>::insert(proposal_id.clone(), proposal);
+				<Proposals<T>>::insert(proposal_id, proposal);
 			}
 
 			Self::deposit_event(Event::<T>::VoteCast { proposal_id, voter, in_favor });
@@ -437,7 +437,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			<Proposals<T>>::try_mutate(proposal_id.clone(), |maybe_proposal| -> DispatchResult {
+			<Proposals<T>>::try_mutate(proposal_id, |maybe_proposal| -> DispatchResult {
 				let proposal = maybe_proposal.as_mut().ok_or(Error::<T>::ProposalDoesNotExist)?;
 				let dao = pallet_dao_core::Daos::<T>::get(&proposal.dao_id)
 					.ok_or(DaoError::<T>::DaoDoesNotExist)?;

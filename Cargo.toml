@@ -1,12 +1,12 @@
 [workspace]
 members = [
 	"node",
-	"runtime/local",
+	"runtime",
 	"integration-wrapper",
-]
+	]
 default-members = [
 	"node",
-	"runtime/local",
+	"runtime",
 	]
 [profile.release]
 panic = "unwind"
