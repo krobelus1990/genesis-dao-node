@@ -40,6 +40,7 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 pub fn polkadot_chain_spec_properties() -> serde_json::map::Map<String, serde_json::Value> {
 	serde_json::json!({
 		"tokenDecimals": 10,
+		"tokenSymbol": "DOT"
 	})
 	.as_object()
 	.expect("Map given; qed")
